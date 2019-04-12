@@ -1,0 +1,16 @@
+// statyczne typowanie, przykładowe błędy
+
+void a(int n) {
+    printInt(n);
+}
+
+int main() {
+    string x = 5; // error
+    int x = a(3); // error
+    a("test"); // error
+    for (x = 3 to "4") { // error
+        ;
+    }
+
+    return 0;
+}

@@ -1,0 +1,12 @@
+// pętla for - zapis zmiennej sterującej
+
+int main() {
+    int i;
+
+    for (i = 0 to 4) {
+        printInt(i);
+        i = 0; // error
+    }
+
+    return 0;
+}

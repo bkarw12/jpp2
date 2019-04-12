@@ -1,0 +1,11 @@
+// pętla for
+
+int main() {
+    int i;
+
+    for (i = 0 to 4) {
+        printInt(i);
+    }
+
+    return 0;
+}

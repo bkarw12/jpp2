@@ -1,0 +1,14 @@
+// zmienne globalne, dowolna kolejność
+
+int main() {
+    int x = a(x);
+    x++;
+    printInt(a(x));
+}
+
+int x = 5;
+
+int a(int n) {
+    printInt(x);
+    return n;
+}
