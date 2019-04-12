@@ -1,0 +1,75 @@
+\documentclass{article}
+
+\usepackage{polski}
+\usepackage[utf8]{inputenc}
+\usepackage{indentfirst}
+\usepackage{hyperref}
+
+\title{JPP zadanie 2 - deklaracja języka}
+\author{Bartłomiej Karwowski\\385713}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section{Wstęp}
+
+Opisany w tym dokumencie język programowania jest stworzony na podstawie języka \textit{Latte} ze strony:\\
+
+\url{https://www.mimuw.edu.pl/~ben/Zajecia/Mrj2018/Latte/}
+
+\section{Gramatyka języka}
+
+Opis gramatyki w notacji EBNF znajduje się w pliku \textbf{gram.cf}
+
+\section{Przykładowe programy}
+
+Przykładowe programy znajdują się w folderze \textbf{prog}.
+
+\begin{itemize}
+    \item latte1/2/3.in - przykładowe programy z \textit{Latte}.
+    \item *\_bad.in - przykładowe niepoprawne programy
+    \item *.out - output przykładowych programów
+\end{itemize}
+
+\newpage
+\section{Opis języka}
+
+Program w tym języku (tak jak w \textit{Latte}) jest listą definicji funkcji, a także dodatkowo definicji zmiennych globalnych. Pozostałe części głównej struktury programu są identyczne jak w wymienionym języku, włącznie z wzajemną rekurencją funkcji (zmienne globalne także mogą być deklarowane w dowolnej kolejności).
+
+Wszystkie instrukcje i wyrażenia które są w \textit{Latte} zachowują się w tym języku identycznie. Typy i predefiniowane funkcje także są identyczne. Obsługa parametrów funkcji także jest analogiczna (przekazywanie argumentów przez wartość).
+
+\subsection{Inne instrukcje}
+
+\begin{itemize}
+    \item Pętla for (for i = a to b) - tak jak w wymaganiu punktowym nr 7, zmienna i jest \textit{read-only}, zaś wartość b jest wyliczana tylko raz na początku pętli.
+    \item break/continue - analogicznie jak np. w C++.
+\end{itemize}
+
+\newpage
+\section{Oczekiwana liczba punktów}
+
+Spodziewana ilość punktów za poprawne wykonanie wszystkich poniższych zagadnień - \textbf{25 pkt.}
+
+\subsection{Na 20 pkt.}
+\begin{enumerate}
+    \item Co najmniej trzy typy wartości: int, bool i string.
+    \item Literały, arytmetyka, porównania.
+    \item Zmienne, operacja przypisania
+    \item Jawne wypisywanie wartości na wyjście (instrukcja lub wbudowana procedura print).
+    \item while, if (z else i bez).
+    \item Funkcje lub procedury (bez zagnieżdżania), rekurencja.
+    \item b) Zmienne „read-only” i użycie ich np. w implementacji pętli for w stylu Pascala.
+    \item Przesłanianie identyfikatorów ze statycznym ich wiązaniem (zmienne lokalne i globalne).
+    \item Obsługa błędów wykonania, np. dzielenie przez zero.
+    \item Funkcje przyjmujące i zwracające wartość dowolnych obsługiwanych typów.
+\end{enumerate}
+
+\subsection{Dodatkowe punkty}
+\begin{itemize}
+    \item 4 pkt. - Statyczne typowanie (tj. zawsze terminująca faza kontroli typów przed rozpoczęciem wykonania programu).
+    \item 1 pkt. - Operacje przerywające pętlę while - break i continue.
+\end{itemize}
+
+\end{document}
