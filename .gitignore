@@ -1,1 +1,3 @@
 *.pdf
+grammar/*
+!grammar/gram.cf
