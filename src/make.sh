@@ -1,0 +1,1 @@
+ghc --make TestGram -no-keep-o-files -no-keep-hi-files
