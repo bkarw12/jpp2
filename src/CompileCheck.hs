@@ -59,6 +59,14 @@ checkInsertVar t (Init (Ident var) e) = do
         put (vs',fs)
     else lift $ Bad $ "Error: Types mismatch in variable declaration: \"" ++ var ++ "\"."
 
+checkArgs :: [Arg] -> [Expr] -> String -> String -> StateT Env Err ()
+checkArgs args es s1 s2
+    | length args /= length es  = lift $ Bad s1
+    | otherwise                 = mapM_ (checkArgs' s2) $ zip args es
+
+checkArgs' :: String -> (Arg, Expr) -> StateT Env Err ()
+checkArgs' s ((Arg t _), e) = tcExpr' t e s
+        
 -- Raw type checking
 
 tcBlock :: Block -> StateT Env Err ()
@@ -92,13 +100,56 @@ tcStmt (SExp e) = do
 tcStmt _ = return ()
 
 tcExpr :: Expr -> StateT Env Err Type
-tcExpr _ = lift $ Bad "Error: Not implemented."
+tcExpr (EVar (Ident var)) = do
+    (vs,_) <- get
+    case Data.Map.lookup var vs of
+        Nothing     -> lift $ Bad $ "Error: variable \"" ++ show var ++ "\" not declared."
+        Just (t,_)  -> return t
+tcExpr (ELitInt _) = return Int
+tcExpr ELitTrue = return Bool
+tcExpr ELitFalse = return Bool
+tcExpr (EApp (Ident var) es) = do
+    (_,fs) <- get
+    case Data.Map.lookup var fs of
+        Nothing         -> lift $ Bad $ "Error: function \"" ++ show var ++ "\" not declared."
+        Just (t,args,_) -> do
+            checkArgs args es 
+                ("Error: Wrong number of parameters in function statement: " ++ show (EApp (Ident var) es) ++ ".")
+                ("Error: Types mismatch in function statement: " ++ show (EApp (Ident var) es) ++ ".")
+            return t
+tcExpr (EString _) = return Str
+tcExpr (Neg e) = do
+    tcExpr' Int e $ "Error: Negated expression " ++ show e ++ " not an int."
+    return Int
+tcExpr (Not e) = do
+    tcExpr' Bool e $ "Error: \"Not\" expression " ++ show e ++ " not a boolean."
+    return Bool
+tcExpr (EMul e1 _ e2) = do
+    tcExpr2' Int e1 e2 
+        ("Error: expression " ++ show e1 ++ " not an int.") 
+        ("Error: expression " ++ show e2 ++ " not an int.")
+    return Int
+tcExpr (EAdd e1 _ e2) = tcExpr (EMul e1 Times e2)
+tcExpr (ERel e1 _ e2) = do
+    tcExpr (EMul e1 Times e2)
+    return Bool
+tcExpr (EAnd e1 e2) = do
+    tcExpr2' Bool e1 e2
+        ("Error: expression " ++ show e1 ++ " not a boolean.")
+        ("Error: expression " ++ show e2 ++ " not a boolean.")
+    return Bool
+tcExpr (EOr e1 e2) = tcExpr (EAnd e1 e2)
 
 tcExpr' :: Type -> Expr -> String -> StateT Env Err ()
 tcExpr' t e s = do
     te <- tcExpr e
     if t == te then return ()
     else lift $ Bad s
+
+tcExpr2' :: Type -> Expr -> Expr -> String -> String -> StateT Env Err ()
+tcExpr2' t e1 e2 s1 s2 = do
+    tcExpr' t e1 s1
+    tcExpr' t e2 s2
 
 tcProg :: Env -> Err ()
 tcProg env = do
