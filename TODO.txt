@@ -1,0 +1,7 @@
+Błędy kompilacji:
+- redeklaracje w jednym bloku
+- czy wszystkie returny są zgodne
+- zadeklarowanie funkcji o nazwie takiej samej jak wbudowane
+
+Błędy wykonania:
+- dzielenie przez 0
