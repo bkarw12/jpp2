@@ -12,4 +12,4 @@ Błędy wykonania:
 - dzielenie przez 0
 
 Pierdółki:
-- 
+- poprawić errory na bardziej sensowne (compile-time)

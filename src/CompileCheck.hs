@@ -57,7 +57,7 @@ checkInsertVar t (Init (Ident var) e) = do
         (vs,fs) <- get
         let vs' = insert var (t,typeToVal t) vs
         put (vs',fs)
-    else lift $ Bad $ "Error: Types mismatch in variable declaration: \"" ++ var ++ "\""
+    else lift $ Bad $ "Error: Types mismatch in variable declaration: \"" ++ var ++ "\"."
 
 -- Raw type checking
 
@@ -67,10 +67,38 @@ tcBlock (Block stmts) = mapM_ tcStmt stmts
 tcStmt :: Stmt -> StateT Env Err ()
 tcStmt (BStmt b) = tcBlock b
 tcStmt (DeclStmt (Decl t items)) = mapM_ (checkInsertVar t) items
+tcStmt (Ass id e) = do
+    t <- tcExpr e
+    tcExpr' t (EVar id) $ "Error: Types mismatch in variable assignment: \"" ++ show id ++ "\"."
+tcStmt (Incr id) = tcExpr' Int (EVar id) $ "Error: Types mismatch in variable incrementation: \"" ++ show id ++ "\"."
+tcStmt (Decr id) = tcExpr' Int (EVar id) $ "Error: Types mismatch in variable decrementation: \"" ++ show id ++ "\"."
+tcStmt (Cond e stmt) = do 
+    tcExpr' Bool e $ "Error: Condition expression " ++ show e ++ " is not a boolean."
+    tcStmt stmt
+tcStmt (CondElse e stmt1 stmt2) = do
+    tcStmt (Cond e stmt1)
+    tcStmt stmt2
+tcStmt (For id e1 e2 stmt) = do
+    tcExpr' Int (EVar id) $ "Error: For loop argument " ++ show id ++ " is not an int."
+    tcExpr' Int e1 $ "Error: For loop start expression " ++ show e1 ++ " is not an int."
+    tcExpr' Int e2 $ "Error: For loop end expression " ++ show e1 ++ " is not an int."
+    tcStmt stmt
+tcStmt (While e stmt) = do
+    tcExpr' Bool e $ "Error: While loop condition expression " ++ show e ++ " is not a boolean."
+    tcStmt stmt
+tcStmt (SExp e) = do 
+    tcExpr e
+    return ()
 tcStmt _ = return ()
 
 tcExpr :: Expr -> StateT Env Err Type
 tcExpr _ = lift $ Bad "Error: Not implemented."
+
+tcExpr' :: Type -> Expr -> String -> StateT Env Err ()
+tcExpr' t e s = do
+    te <- tcExpr e
+    if t == te then return ()
+    else lift $ Bad s
 
 tcProg :: Env -> Err ()
 tcProg env = do
@@ -111,7 +139,7 @@ checkTopDef'' (FnDef t (Ident var) args b) = do
     if notMember var fs then 
         let fs' = insert var (t,args,b) fs 
         in put (vs,fs')
-    else lift $ Bad $ "Error: Function redeclaration: " ++ var
+    else lift $ Bad $ "Error: Function redeclaration: " ++ var ++ "."
 checkTopDef'' (VDef (Decl t items)) = mapM_ (checkTopDefV t) items
 
 checkTopDefV :: Type -> Item -> StateT Env Err ()
@@ -126,7 +154,7 @@ checkTopDefV' val t var = do
     if notMember var vs then
         let vs' = insert var (t,val) vs
         in put (vs',fs)
-    else lift $ Bad $ "Error: Global variable redeclaration: " ++ var
+    else lift $ Bad $ "Error: Global variable redeclaration: " ++ var ++ "."
 
 calcTopDefVal :: Expr -> StateT Env Err Val -- TODO add more expressions?
 calcTopDefVal (ELitInt _)   = lift $ Ok VInt
