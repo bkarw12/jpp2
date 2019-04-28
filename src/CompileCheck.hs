@@ -103,8 +103,9 @@ tcExpr :: Expr -> StateT Env Err Type
 tcExpr (EVar (Ident var)) = do
     (vs,_) <- get
     case Data.Map.lookup var vs of
-        Nothing     -> lift $ Bad $ "Error: variable \"" ++ show var ++ "\" not declared."
-        Just (t,_)  -> return t
+        Nothing         -> lift $ Bad $ "Error: variable \"" ++ show var ++ "\" not declared."
+        Just (_,VNone)  -> return Void
+        Just (t,_)      -> return t
 tcExpr (ELitInt _) = return Int
 tcExpr ELitTrue = return Bool
 tcExpr ELitFalse = return Bool

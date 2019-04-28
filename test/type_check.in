@@ -1,6 +1,22 @@
 // redeklaracja funkcji
 
+void test() {
+    ;
+}
+
 int main() {
+    int a;
+    void b = test();
+
+    for (a = 3 + 5 to -23) {
+        break;
+        int i = 3 / 20;
+        {
+            while (false || true) {
+                return 2;
+            }
+        }
+    }
     return 0;
 }
 
