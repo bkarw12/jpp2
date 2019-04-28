@@ -6,6 +6,7 @@ Błędy kompilacji:
 - czy wszystkie returny są zgodne
 - zadeklarowanie funkcji o nazwie takiej samej jak wbudowane
 - inicjalizacja zmienych globalnych nie stałymi
+- sprawdzanie czy istnieje bezparametrowy int main()
 
 Błędy wykonania:
 - dzielenie przez 0
