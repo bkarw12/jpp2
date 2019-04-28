@@ -1,4 +1,6 @@
 Błędy kompilacji:
+- zastosowanie funkcji do niewłaściwej liczby argumentów
+- użycie niezadeklarowanych/niezainicjalizowanych zmiennych
 - redeklaracje w jednym bloku
 - czy można nazwać jednocześnie x np. zmienną globalną (albo lokalną) i funkcję?
 - czy wszystkie returny są zgodne
@@ -7,7 +9,6 @@ Błędy kompilacji:
 
 Błędy wykonania:
 - dzielenie przez 0
-- korzystanie z niezaicjalizowanych zmiennych (czy to nie błąd kompilacji?)
 
 Pierdółki:
 - 

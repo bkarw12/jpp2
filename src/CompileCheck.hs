@@ -15,7 +15,7 @@ import ErrM
 
 type Var = String
 type Loc = Int
-data Val = VInt Int | VBool Bool | VStr String | VNone | VExpr Expr -- TODO remove VExpr
+data Val = VInt Integer | VBool Bool | VStr String | VNone
 type VVal = (Type, Val)
 type FVal = (Type, [Arg], Block)
 
@@ -27,6 +27,10 @@ newloc :: Map Loc a -> Loc
 newloc m 
     | size m == 0 = 0
     | otherwise   = (fst $ findMax m) + 1
+
+-- Raw type checking
+
+tcProg :: Program -> 
 
 -- Checking global declarations
 
@@ -49,7 +53,9 @@ checkTopDef'' (VDef (Decl t items)) = mapM_ (checkTopDefV t) items
 
 checkTopDefV :: Type -> Item -> StateT Env Err ()
 checkTopDefV t (NoInit (Ident var)) = checkTopDefV' VNone t var
-checkTopDefV t (Init (Ident var) e) = checkTopDefV' (VExpr e) t var
+checkTopDefV t (Init (Ident var) e) = do
+    val <- calcTopDefVal e
+    checkTopDefV' val t var
 
 checkTopDefV' :: Val -> Type -> Var -> StateT Env Err ()
 checkTopDefV' val t var = do
@@ -61,6 +67,13 @@ checkTopDefV' val t var = do
         in put (ls',vs',fs)
     else lift $ Bad $ "Error: Global variable redeclaration: " ++ var
 
+calcTopDefVal :: Expr -> StateT Env Err Val -- TODO add more expressions?
+calcTopDefVal (ELitInt n)   = lift $ Ok  $ VInt n
+calcTopDefVal ELitTrue      = lift $ Ok  $ VBool True
+calcTopDefVal ELitFalse     = lift $ Ok  $ VBool False
+calcTopDefVal (EString s)   = lift $ Ok  $ VStr s
+calcTopDefVal _             = lift $ Bad $ "Error: Expression assigned to global variable is not a constant value."
+
 -- Main error check function
 
 checkProgram :: Program -> IO ()
@@ -71,4 +84,5 @@ checkProgram prog = case checkProgram' prog of
 checkProgram' :: Program -> Err ()
 checkProgram' prog = do
     env <- checkTopDef prog
+    -- TODO: typeCheck
     return ()
