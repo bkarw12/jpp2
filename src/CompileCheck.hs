@@ -44,43 +44,56 @@ insertArgs :: Env -> [Arg] -> Env
 insertArgs env args = Prelude.foldl insertArg env args
 
 insertArg :: Env -> Arg -> Env
-insertArg (venv,fenv) (Arg t (Ident var)) = (insert var (t,typeToVal t) venv,fenv)
+insertArg (vs,fs) (Arg t (Ident var)) = (insert var (t,typeToVal t) vs,fs)
 
--- TODO: export to another file
-
-class TypeCheckable a where
-    tc :: a -> StateT Env Err ()
-
-instance TypeCheckable Block where
-    tc (Block stmts) = mapM_ tc stmts
-
-instance TypeCheckable Stmt where
-    tc stmt = lift $ Bad "Error: Not implemented."
+checkInsertVar :: Type -> Item -> StateT Env Err ()
+checkInsertVar t (NoInit (Ident var)) = do
+    (vs,fs) <- get
+    let vs' = insert var (t,VNone) vs
+    put (vs',fs) 
+checkInsertVar t (Init (Ident var) e) = do
+    te <- tcExpr e
+    if t == te then do
+        (vs,fs) <- get
+        let vs' = insert var (t,typeToVal t) vs
+        put (vs',fs)
+    else lift $ Bad $ "Error: Types mismatch in variable declaration: \"" ++ var ++ "\""
 
 -- Raw type checking
 
-checkTypeProg :: Env -> Err ()
-checkTypeProg env = do
-    checkTypeVars env
-    checkTypeFuncs env
+tcBlock :: Block -> StateT Env Err ()
+tcBlock (Block stmts) = mapM_ tcStmt stmts
+
+tcStmt :: Stmt -> StateT Env Err ()
+tcStmt (BStmt b) = tcBlock b
+tcStmt (DeclStmt (Decl t items)) = mapM_ (checkInsertVar t) items
+tcStmt _ = return ()
+
+tcExpr :: Expr -> StateT Env Err Type
+tcExpr _ = lift $ Bad "Error: Not implemented."
+
+tcProg :: Env -> Err ()
+tcProg env = do
+    tcVars env
+    tcFuncs env
     return ()
 
-checkTypeVars :: Env -> Err ()
-checkTypeVars (venv,_) = mapM_ checkTypeVars' $ toList venv
+tcVars :: Env -> Err ()
+tcVars (vs,_) = mapM_ tcVars' $ toList vs
 
-checkTypeVars' :: (Var, VVal) -> Err ()
-checkTypeVars' (var,vval) = case vval of
+tcVars' :: (Var, VVal) -> Err ()
+tcVars' (var,vval) = case vval of
     (Int, VInt)   -> Ok ()
     (Bool, VBool) -> Ok ()
     (Str, VStr)   -> Ok ()
     _               -> Bad $ "Error: types mismatch for global variable \"" ++ var ++ "\" assignment."
 
-checkTypeFuncs :: Env -> Err ()
-checkTypeFuncs env = mapM_ (checkTypeFuncs' env) $ toList fenv
-    where (_,fenv) = env
+tcFuncs :: Env -> Err ()
+tcFuncs env = mapM_ (tcFuncs' env) $ toList fs
+    where (_,fs) = env
 
-checkTypeFuncs' :: Env -> (Var, FVal) -> Err ((), Env)
-checkTypeFuncs' env (_,(_,args,b)) = runStateT (tc b) $ insertArgs env args
+tcFuncs' :: Env -> (Var, FVal) -> Err ((), Env)
+tcFuncs' env (_,(_,args,b)) = runStateT (tcBlock b) $ insertArgs env args
 
 -- Checking global declarations
 
@@ -132,5 +145,5 @@ checkProgram prog = case checkProgram' prog of
 checkProgram' :: Program -> Err ()
 checkProgram' prog = do
     env <- checkTopDef prog
-    checkTypeProg env
+    tcProg env
     return ()

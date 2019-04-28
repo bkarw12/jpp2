@@ -1,9 +1,6 @@
 // redeklaracja funkcji
 
 int main() {
-    int x = a(x);
-    x++;
-    printInt(a(x));
     return 0;
 }
 
