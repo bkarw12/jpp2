@@ -16,7 +16,7 @@ import ErrM
 
 type Var = String
 -- type Loc = Int
-data Val = VInt Integer | VBool Bool | VStr String | VNone
+data Val = VInt | VBool | VStr | VNone
 type VVal = (Type, Val)
 type FVal = (Type, [Arg], Block)
 
@@ -34,8 +34,17 @@ type Env = (VEnv, FEnv)
 --     | Data.Map.null m    = 0
 --     | otherwise = (fst $ findMax m) + 1
 
+typeToVal :: Type -> Val
+typeToVal Int = VInt
+typeToVal Bool = VBool
+typeToVal Str = VStr
+typeToVal _ = VNone
+
 insertArgs :: Env -> [Arg] -> Env
-insertArgs env args = env
+insertArgs env args = Prelude.foldl insertArg env args
+
+insertArg :: Env -> Arg -> Env
+insertArg (venv,fenv) (Arg t (Ident var)) = (insert var (t,typeToVal t) venv,fenv)
 
 -- TODO: export to another file
 
@@ -62,9 +71,9 @@ checkTypeVars (venv,_) = mapM_ checkTypeVars' $ toList venv
 
 checkTypeVars' :: (Var, VVal) -> Err ()
 checkTypeVars' (var,vval) = case vval of
-    (Int, VInt _)   -> Ok ()
-    (Bool, VBool _) -> Ok ()
-    (Str, VStr _)   -> Ok ()
+    (Int, VInt)   -> Ok ()
+    (Bool, VBool) -> Ok ()
+    (Str, VStr)   -> Ok ()
     _               -> Bad $ "Error: types mismatch for global variable \"" ++ var ++ "\" assignment."
 
 checkTypeFuncs :: Env -> Err ()
@@ -73,7 +82,6 @@ checkTypeFuncs env = mapM_ (checkTypeFuncs' env) $ toList fenv
 
 checkTypeFuncs' :: Env -> (Var, FVal) -> Err ((), Env)
 checkTypeFuncs' env (_,(_,args,b)) = runStateT (tc b) $ insertArgs env args
-
 
 -- checkTypes = tcProg
 
@@ -117,10 +125,10 @@ checkTopDefV' val t var = do
     else lift $ Bad $ "Error: Global variable redeclaration: " ++ var
 
 calcTopDefVal :: Expr -> StateT Env Err Val -- TODO add more expressions?
-calcTopDefVal (ELitInt n)   = lift $ Ok  $ VInt n
-calcTopDefVal ELitTrue      = lift $ Ok  $ VBool True
-calcTopDefVal ELitFalse     = lift $ Ok  $ VBool False
-calcTopDefVal (EString s)   = lift $ Ok  $ VStr s
+calcTopDefVal (ELitInt _)   = lift $ Ok VInt
+calcTopDefVal ELitTrue      = lift $ Ok VBool
+calcTopDefVal ELitFalse     = lift $ Ok VBool
+calcTopDefVal (EString _)   = lift $ Ok VStr
 calcTopDefVal _             = lift $ Bad $ "Error: Expression assigned to global variable is not a constant value."
 
 -- Main error check function
