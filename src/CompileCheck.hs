@@ -52,11 +52,10 @@ class TypeCheckable a where
     tc :: a -> StateT Env Err ()
 
 instance TypeCheckable Block where
-    tc b = lift $ Bad "Error: Not implemented."
+    tc (Block stmts) = mapM_ tc stmts
 
--- instance TypeCheckable TopDef where
---     tc (FnDef t i args b) = lift $ Ok ()
---     tc (VDef d) = lift $ Bad $ "xD"
+instance TypeCheckable Stmt where
+    tc stmt = lift $ Bad "Error: Not implemented."
 
 -- Raw type checking
 
@@ -82,14 +81,6 @@ checkTypeFuncs env = mapM_ (checkTypeFuncs' env) $ toList fenv
 
 checkTypeFuncs' :: Env -> (Var, FVal) -> Err ((), Env)
 checkTypeFuncs' env (_,(_,args,b)) = runStateT (tc b) $ insertArgs env args
-
--- checkTypes = tcProg
-
--- tcProg :: Env -> Program -> Err ()
--- tcProg env (Program topdefs) = mapM_ (tcTopDef env) topdefs
-
--- tcTopDef :: Env -> TopDef -> Err ((), Env) 
--- tcTopDef env t = runStateT (tc t) env
 
 -- Checking global declarations
 
