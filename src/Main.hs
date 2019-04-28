@@ -37,6 +37,7 @@ run p s = let ts = myLLexer s in case p ts of
     Ok prog -> do
         putStrLn "Parse Successful!"
         putStrLn $ show prog ++ "\n"
+        checkProgram prog
         exitSuccess
 
 -- Main

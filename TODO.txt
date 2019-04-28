@@ -1,7 +1,13 @@
 Błędy kompilacji:
 - redeklaracje w jednym bloku
+- czy można nazwać jednocześnie x np. zmienną globalną (albo lokalną) i funkcję?
 - czy wszystkie returny są zgodne
 - zadeklarowanie funkcji o nazwie takiej samej jak wbudowane
+- inicjalizacja zmienych globalnych nie stałymi
 
 Błędy wykonania:
 - dzielenie przez 0
+- korzystanie z niezaicjalizowanych zmiennych (czy to nie błąd kompilacji?)
+
+Pierdółki:
+- 
