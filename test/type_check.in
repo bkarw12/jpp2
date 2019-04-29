@@ -1,4 +1,4 @@
-// redeklaracja funkcji
+// typowanie
 
 void test() {
     ;
@@ -6,7 +6,7 @@ void test() {
 
 int main() {
     int a;
-    void b = test();
+    int b = a;
 
     for (a = 3 + 5 to -23) {
         break;
@@ -20,6 +20,6 @@ int main() {
     return 0;
 }
 
-int a = 5;
-string b = "xD";
+// int a = 5;
+// string b = "xD";
 boolean c = true;

@@ -56,6 +56,7 @@ checkInsertVar t (NoInit (Ident var)) = do
     put (vs',fs) 
 checkInsertVar t (Init (Ident var) e) = do
     te <- tcExpr e
+    checkInit e
     if t == te then do
         (vs,fs) <- get
         let vs' = insert var (t,typeToVal t) vs
@@ -87,6 +88,12 @@ checkInit (ERel e1 _ e2) = checkInit (EMul e1 Times e2)
 checkInit (EAnd e1 e2) = checkInit (EMul e1 Times e2)
 checkInit (EOr e1 e2) = checkInit (EMul e1 Times e2)
 checkInit _ = return ()
+
+initVar :: Type -> Var -> StateT Env Err ()
+initVar t var = do
+    (vs,fs) <- get
+    let vs' = insert var (t, typeToVal t) vs
+    put (vs',fs)
         
 -- Raw type checking
 
@@ -100,6 +107,8 @@ tcStmt (Ass id e) = do
     t <- tcExpr e
     checkInit e
     tcExpr'NoInit t (EVar id) $ "Error: Types mismatch in variable assignment: \"" ++ show id ++ "\"."
+    let (Ident var) = id
+    initVar t var
 tcStmt (Incr id) = tcExpr' Int (EVar id) $ "Error: Types mismatch in variable incrementation: \"" ++ show id ++ "\"."
 tcStmt (Decr id) = tcExpr' Int (EVar id) $ "Error: Types mismatch in variable decrementation: \"" ++ show id ++ "\"."
 tcStmt (Cond e stmt) = do 
@@ -112,6 +121,8 @@ tcStmt (For id e1 e2 stmt) = do
     tcExpr'NoInit Int (EVar id) $ "Error: For loop argument " ++ show id ++ " is not an int."
     tcExpr' Int e1 $ "Error: For loop start expression " ++ show e1 ++ " is not an int."
     tcExpr' Int e2 $ "Error: For loop end expression " ++ show e1 ++ " is not an int."
+    let (Ident var) = id
+    initVar Int var 
     tcStmt stmt
 tcStmt (While e stmt) = do
     tcExpr' Bool e $ "Error: While loop condition expression " ++ show e ++ " is not a boolean."
