@@ -300,6 +300,15 @@ calcTopDefVal ELitFalse     = lift $ Ok VBool
 calcTopDefVal (EString _)   = lift $ Ok VStr
 calcTopDefVal _             = lift $ Bad $ "Error: Expression assigned to global variable is not a constant value."
 
+-- Main function check
+
+checkMain :: Env -> Err ()
+checkMain (_,_,fs,_,_) = case Data.Map.lookup "main" fs of
+    Nothing -> Bad $ "Error: Main function not found."
+    Just (t,args,_) -> if t /= Int then Bad $ "Error: Main function return type should be int."
+        else if args /= [] then Bad $ "Error: Main function does not take any arguments."
+        else return ()
+
 -- Main error check function
 
 checkProgram :: Program -> IO ()
@@ -311,4 +320,5 @@ checkProgram' :: Program -> Err ()
 checkProgram' prog = do
     env <- checkTopDef prog
     tcProg env
+    checkMain env
     return ()
