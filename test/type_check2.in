@@ -4,9 +4,13 @@ int a = 1;
 
 int main() {
     int a;
+
+    a = 5;
     {
         string a = "5";
     }
+
+    int a = 2;
 
     while (true) {
         string a = "c";

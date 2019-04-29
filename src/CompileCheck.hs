@@ -53,12 +53,6 @@ getVVal' :: Var -> StateT Env Err (VVal)
 getVVal' var = do
     loc <- getLoc var
     getVVal loc
---     (ls,vs,_,_) <- get
---     case Data.Map.lookup var ls of
---         Nothing  -> lift $ Bad $ "Error: variable " ++ show var ++ " not declared."
---         Just loc -> case Data.Map.lookup loc vs of
---             Nothing -> lift $ Bad $ "Unknown error: Variable declared but not found?"
---             Just vval -> return vval
 
 keyFromValue :: Eq b => Map a b -> b -> a
 keyFromValue m val = fst $ head $ toList $ Data.Map.filter (== val) m
@@ -102,19 +96,6 @@ checkInsertVar' t val var = do
         vs' = insert loc (t,val,n) vs
     put (ls',vs',fs,n)
 
-    -- (ls,vs,fs,n) <- get
-    -- loc <- getLoc var
-    -- (_,_,m) <- getVVal loc
-
-    -- (vs,fs,n) <- get
-    -- case Data.Map.lookup var vs of
-    --     Just (_,_,m) -> 
-    --         if n <= m then lift $ Bad $ "Error: Variable redeclaration: " ++ var ++ "."
-    --         else return ()
-    --     _            -> return ()
-    -- let vs' = insert var (t,val,n) vs
-    -- put (vs',fs,n)
-
 checkArgs :: [Arg] -> [Expr] -> String -> String -> StateT Env Err ()
 checkArgs args es s1 s2
     | length args /= length es  = lift $ Bad s1
@@ -128,11 +109,6 @@ checkInit (EVar (Ident var)) = do
     (_,val,_) <- getVVal' var
     if val == VNone then lift $ Bad $ "Error: variable " ++ show var ++ " not initialized."
     else return ()
-    -- (vs,_,_) <- get
-    -- case Data.Map.lookup var vs of
-    --     Nothing        -> lift $ Bad $ "Error: variable \"" ++ show var ++ "\" not declared."
-    --     Just (_,val,_) -> if val == VNone then lift $ Bad $ "Error: variable " ++ show var ++ " not initialized."
-    --         else return ()
 checkInit (Neg e) = checkInit e
 checkInit (Not e) = checkInit e
 checkInit (EMul e1 _ e2) = do 
@@ -151,17 +127,6 @@ initVar var = do
     (t,_,num) <- getVVal loc
     let vs' = insert loc (t,typeToVal t,num) vs
     put (ls,vs',fs,n)
-    -- (ls,vs,fs,n) <- get
-    -- (t,_,num) <- getVVal' var
-    -- let vs' = insert var (t,typeToVal t,num) vs
-    -- put (ls,vs',fs,n)
-
-    -- (ls,vs,fs,n) <- get
-    -- case Data.Map.lookup var vs of
-    --     Nothing        -> lift $ Bad $ "Error: variable \"" ++ show var ++ "\" not declared."
-    --     Just (t,_,num) -> do
-    --         let vs' = insert var (t,typeToVal t,num) vs
-    --         put (vs',fs,n)
         
 -- Raw type checking
 
@@ -209,11 +174,6 @@ tcExpr :: Expr -> StateT Env Err Type
 tcExpr (EVar (Ident var)) = do
     (t,_,_) <- getVVal' var
     return t
-    -- (ls,vs,_,_) <- get
-    -- case Data.Map.lookup var ls of
-    --     Nothing  -> lift $ Bad $ "Error: variable \"" ++ show var ++ "\" not declared."
-    --     Just loc -> return t
-    --         where Just (t,_,_) = Data.Map.lookup loc vs
 tcExpr (ELitInt _) = return Int
 tcExpr ELitTrue = return Bool
 tcExpr ELitFalse = return Bool

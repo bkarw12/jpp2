@@ -1,5 +1,4 @@
 Błędy kompilacji:
-- redeklaracje w jednym bloku
 - czy można nazwać jednocześnie x np. zmienną globalną (albo lokalną) i funkcję?
 - czy wszystkie returny są zgodne
 - zadeklarowanie funkcji o nazwie takiej samej jak wbudowane
