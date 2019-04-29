@@ -18,7 +18,7 @@ type Var = String
 -- type Loc = Int
 data Val = VInt | VBool | VStr | VNone
     deriving (Eq)
-type VVal = (Type, Val)
+type VVal = (Type, Val, Integer)
 type FVal = (Type, [Arg], Block)
 
 -- type LEnv = Map Var Loc
@@ -75,8 +75,8 @@ checkInit :: Expr -> StateT Env Err ()
 checkInit (EVar (Ident var)) = do
     (vs,_) <- get
     case Data.Map.lookup var vs of
-        Nothing      -> lift $ Bad $ "Error: variable \"" ++ show var ++ "\" not declared."
-        Just (_,val) -> if val == VNone then lift $ Bad $ "Error: variable " ++ show var ++ " not initialized."
+        Nothing        -> lift $ Bad $ "Error: variable \"" ++ show var ++ "\" not declared."
+        Just (_,val,_) -> if val == VNone then lift $ Bad $ "Error: variable " ++ show var ++ " not initialized."
             else return ()
 checkInit (Neg e) = checkInit e
 checkInit (Not e) = checkInit e
@@ -89,11 +89,14 @@ checkInit (EAnd e1 e2) = checkInit (EMul e1 Times e2)
 checkInit (EOr e1 e2) = checkInit (EMul e1 Times e2)
 checkInit _ = return ()
 
-initVar :: Type -> Var -> StateT Env Err ()
-initVar t var = do
+initVar :: Var -> StateT Env Err ()
+initVar var = do
     (vs,fs) <- get
-    let vs' = insert var (t, typeToVal t) vs
-    put (vs',fs)
+    case Data.Map.lookup var vs of
+        Nothing        -> lift $ Bad $ "Error: variable \"" ++ show var ++ "\" not declared."
+        Just (t,_,num) -> do
+            let vs' = insert var (t,typeToVal t,num) vs
+            put (vs',fs)
         
 -- Raw type checking
 
@@ -108,7 +111,7 @@ tcStmt (Ass id e) = do
     checkInit e
     tcExpr'NoInit t (EVar id) $ "Error: Types mismatch in variable assignment: \"" ++ show id ++ "\"."
     let (Ident var) = id
-    initVar t var
+    initVar var
 tcStmt (Incr id) = tcExpr' Int (EVar id) $ "Error: Types mismatch in variable incrementation: \"" ++ show id ++ "\"."
 tcStmt (Decr id) = tcExpr' Int (EVar id) $ "Error: Types mismatch in variable decrementation: \"" ++ show id ++ "\"."
 tcStmt (Cond e stmt) = do 
@@ -122,7 +125,7 @@ tcStmt (For id e1 e2 stmt) = do
     tcExpr' Int e1 $ "Error: For loop start expression " ++ show e1 ++ " is not an int."
     tcExpr' Int e2 $ "Error: For loop end expression " ++ show e1 ++ " is not an int."
     let (Ident var) = id
-    initVar Int var 
+    initVar var 
     tcStmt stmt
 tcStmt (While e stmt) = do
     tcExpr' Bool e $ "Error: While loop condition expression " ++ show e ++ " is not a boolean."
@@ -136,8 +139,8 @@ tcExpr :: Expr -> StateT Env Err Type
 tcExpr (EVar (Ident var)) = do
     (vs,_) <- get
     case Data.Map.lookup var vs of
-        Nothing    -> lift $ Bad $ "Error: variable \"" ++ show var ++ "\" not declared."
-        Just (t,_) -> return t
+        Nothing      -> lift $ Bad $ "Error: variable \"" ++ show var ++ "\" not declared."
+        Just (t,_,_) -> return t
 tcExpr (ELitInt _) = return Int
 tcExpr ELitTrue = return Bool
 tcExpr ELitFalse = return Bool
@@ -202,9 +205,9 @@ tcVars (vs,_) = mapM_ tcVars' $ toList vs
 
 tcVars' :: (Var, VVal) -> Err ()
 tcVars' (var,vval) = case vval of
-    (Int, VInt)   -> Ok ()
-    (Bool, VBool) -> Ok ()
-    (Str, VStr)   -> Ok ()
+    (Int, VInt,_)   -> Ok ()
+    (Bool, VBool,_) -> Ok ()
+    (Str, VStr,_)   -> Ok ()
     _               -> Bad $ "Error: types mismatch for global variable \"" ++ var ++ "\" assignment."
 
 tcFuncs :: Env -> Err ()
@@ -243,7 +246,7 @@ checkTopDefV' :: Val -> Type -> Var -> StateT Env Err ()
 checkTopDefV' val t var = do
     (vs,fs) <- get
     if notMember var vs then
-        let vs' = insert var (t,val) vs
+        let vs' = insert var (t,val,0) vs
         in put (vs',fs)
     else lift $ Bad $ "Error: Global variable redeclaration: " ++ var ++ "."
 
