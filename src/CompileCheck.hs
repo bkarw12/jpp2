@@ -262,7 +262,7 @@ tcFuncs' (ls,vs,fs,n,_) (_,(t,args,b)) = runStateT (tcBlock b) $ insertArgs env'
 
 checkTopDef :: Program -> Err Env
 checkTopDef prog = case runStateT (checkTopDef' prog) (empty, empty, empty, 1, Void) of
-    Ok ((),s) -> Ok s
+    Ok (_,s) -> Ok s
     Bad e     -> Bad e 
 
 checkTopDef' :: Program -> StateT Env Err ()
@@ -294,11 +294,35 @@ checkTopDefV' val t var = do
     else lift $ Bad $ "Error: Global variable redeclaration: " ++ var ++ "."
 
 calcTopDefVal :: Expr -> StateT Env Err Val -- TODO add more expressions?
-calcTopDefVal (ELitInt _)   = lift $ Ok VInt
-calcTopDefVal ELitTrue      = lift $ Ok VBool
-calcTopDefVal ELitFalse     = lift $ Ok VBool
-calcTopDefVal (EString _)   = lift $ Ok VStr
-calcTopDefVal _             = lift $ Bad $ "Error: Expression assigned to global variable is not a constant value."
+calcTopDefVal (ELitInt _) = lift $ Ok VInt
+calcTopDefVal ELitTrue = lift $ Ok VBool
+calcTopDefVal ELitFalse = lift $ Ok VBool
+calcTopDefVal (EString _) = lift $ Ok VStr
+calcTopDefVal (Neg e) = calcTopDefVal' e VInt $ "Error: Negated expression " ++ show e ++ " not an int."
+calcTopDefVal (Not e) = calcTopDefVal' e VBool $ "Error: \"Not\" expression " ++ show e ++ " not a boolean."
+calcTopDefVal (EMul e1 _ e2) = calcTopDefVal2' e1 e2 VInt
+    ("Error: Expression " ++ show e1 ++ " not an int.")
+    ("Error: Expression " ++ show e2 ++ " not an int.")
+calcTopDefVal (EAdd e1 _ e2) = calcTopDefVal (EMul e1 Times e2)
+calcTopDefVal (ERel e1 _ e2) = do
+    calcTopDefVal (EMul e1 Times e2)
+    return VBool
+calcTopDefVal (EAnd e1 e2) = calcTopDefVal2' e1 e2 VBool
+    ("Error: Expression " ++ show e1 ++ " not a boolean.")
+    ("Error: Expression " ++ show e2 ++ " not a boolean.")
+calcTopDefVal (EOr e1 e2) = calcTopDefVal (EAnd e1 e2)
+calcTopDefVal _  = lift $ Bad $ "Error: Expression assigned to global variable is not a constant value."
+
+calcTopDefVal' :: Expr -> Val -> String -> StateT Env Err Val
+calcTopDefVal' e v s = do
+    val <- calcTopDefVal e
+    if val /= v then lift $ Bad s
+    else return v
+
+calcTopDefVal2' :: Expr -> Expr -> Val -> String -> String -> StateT Env Err Val
+calcTopDefVal2' e1 e2 v s1 s2 = do
+    calcTopDefVal' e1 v s1
+    calcTopDefVal' e2 v s2
 
 -- Main function check
 

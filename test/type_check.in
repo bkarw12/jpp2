@@ -6,7 +6,7 @@ void test() {
 
 int main() {
     int a;
-    int b = a;
+    int b = 2;
 
     for (a = 3 + 5 to -23) {
         break;
@@ -20,6 +20,8 @@ int main() {
     return 0;
 }
 
-// int a = 5;
+int a = 5 + 2;
 // string b = "xD";
 boolean c = true;
+int d = 2 * 2;
+int e = d + 2;
