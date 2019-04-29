@@ -309,6 +309,25 @@ checkMain (_,_,fs,_,_) = case Data.Map.lookup "main" fs of
         else if args /= [] then Bad $ "Error: Main function does not take any arguments."
         else return ()
 
+-- Check if every function has a return (excl. void functions)
+
+checkReturn :: Env -> Err ()
+checkReturn (_,_,fs,_,_) = mapM_ checkReturn' $ toList fs
+
+checkReturn' :: (Var, FVal) -> Err ()
+checkReturn' (_,(Void,_,_)) = return ()
+checkReturn' (var,(_,_,b)) = case checkReturnBlock b of
+    Ok _  -> Bad $ "Error: Reached end of non-void function " ++ var ++ "."
+    Bad _ -> return ()
+
+checkReturnBlock :: Block -> Err ()
+checkReturnBlock (Block stmts) = mapM_ checkReturnStmt stmts
+
+checkReturnStmt :: Stmt -> Err ()
+checkReturnStmt (Ret _) = Bad "Ok"
+checkReturnStmt (VRet)  = Bad "Ok"
+checkReturnStmt _       = return ()
+
 -- Main error check function
 
 checkProgram :: Program -> IO ()
@@ -320,5 +339,6 @@ checkProgram' :: Program -> Err ()
 checkProgram' prog = do
     env <- checkTopDef prog
     tcProg env
+    checkReturn env
     checkMain env
     return ()

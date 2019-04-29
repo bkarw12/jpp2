@@ -2,7 +2,6 @@ Błędy kompilacji:
 - czy można nazwać jednocześnie x np. zmienną globalną (albo lokalną) i funkcję?
 - zadeklarowanie funkcji o nazwie takiej samej jak wbudowane
 - inicjalizacja zmienych globalnych nie stałymi
-- sprawdzanie czy istnieje bezparametrowy int main()
 
 Błędy wykonania:
 - dzielenie przez 0
