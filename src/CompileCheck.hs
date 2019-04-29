@@ -17,6 +17,7 @@ import ErrM
 type Var = String
 -- type Loc = Int
 data Val = VInt | VBool | VStr | VNone
+    deriving (Eq)
 type VVal = (Type, Val)
 type FVal = (Type, [Arg], Block)
 
@@ -47,6 +48,8 @@ insertArg :: Env -> Arg -> Env
 insertArg (vs,fs) (Arg t (Ident var)) = (insert var (t,typeToVal t) vs,fs)
 
 checkInsertVar :: Type -> Item -> StateT Env Err ()
+checkInsertVar Void _ = lift $ Bad $ "Error: Variable declared with wrong type: void."
+checkInsertVar (Fun _ _) _ = lift $ Bad $ "Error: Variable declared with wrong type: fun."
 checkInsertVar t (NoInit (Ident var)) = do
     (vs,fs) <- get
     let vs' = insert var (t,VNone) vs
@@ -66,6 +69,24 @@ checkArgs args es s1 s2
 
 checkArgs' :: String -> (Arg, Expr) -> StateT Env Err ()
 checkArgs' s ((Arg t _), e) = tcExpr' t e s
+
+checkInit :: Expr -> StateT Env Err ()
+checkInit (EVar (Ident var)) = do
+    (vs,_) <- get
+    case Data.Map.lookup var vs of
+        Nothing      -> lift $ Bad $ "Error: variable \"" ++ show var ++ "\" not declared."
+        Just (_,val) -> if val == VNone then lift $ Bad $ "Error: variable " ++ show var ++ " not initialized."
+            else return ()
+checkInit (Neg e) = checkInit e
+checkInit (Not e) = checkInit e
+checkInit (EMul e1 _ e2) = do 
+    checkInit e1 
+    checkInit e2
+checkInit (EAdd e1 _ e2) = checkInit (EMul e1 Times e2)
+checkInit (ERel e1 _ e2) = checkInit (EMul e1 Times e2)
+checkInit (EAnd e1 e2) = checkInit (EMul e1 Times e2)
+checkInit (EOr e1 e2) = checkInit (EMul e1 Times e2)
+checkInit _ = return ()
         
 -- Raw type checking
 
@@ -77,7 +98,8 @@ tcStmt (BStmt b) = tcBlock b
 tcStmt (DeclStmt (Decl t items)) = mapM_ (checkInsertVar t) items
 tcStmt (Ass id e) = do
     t <- tcExpr e
-    tcExpr' t (EVar id) $ "Error: Types mismatch in variable assignment: \"" ++ show id ++ "\"."
+    checkInit e
+    tcExpr'NoInit t (EVar id) $ "Error: Types mismatch in variable assignment: \"" ++ show id ++ "\"."
 tcStmt (Incr id) = tcExpr' Int (EVar id) $ "Error: Types mismatch in variable incrementation: \"" ++ show id ++ "\"."
 tcStmt (Decr id) = tcExpr' Int (EVar id) $ "Error: Types mismatch in variable decrementation: \"" ++ show id ++ "\"."
 tcStmt (Cond e stmt) = do 
@@ -87,7 +109,7 @@ tcStmt (CondElse e stmt1 stmt2) = do
     tcStmt (Cond e stmt1)
     tcStmt stmt2
 tcStmt (For id e1 e2 stmt) = do
-    tcExpr' Int (EVar id) $ "Error: For loop argument " ++ show id ++ " is not an int."
+    tcExpr'NoInit Int (EVar id) $ "Error: For loop argument " ++ show id ++ " is not an int."
     tcExpr' Int e1 $ "Error: For loop start expression " ++ show e1 ++ " is not an int."
     tcExpr' Int e2 $ "Error: For loop end expression " ++ show e1 ++ " is not an int."
     tcStmt stmt
@@ -103,9 +125,8 @@ tcExpr :: Expr -> StateT Env Err Type
 tcExpr (EVar (Ident var)) = do
     (vs,_) <- get
     case Data.Map.lookup var vs of
-        Nothing         -> lift $ Bad $ "Error: variable \"" ++ show var ++ "\" not declared."
-        Just (_,VNone)  -> return Void
-        Just (t,_)      -> return t
+        Nothing    -> lift $ Bad $ "Error: variable \"" ++ show var ++ "\" not declared."
+        Just (t,_) -> return t
 tcExpr (ELitInt _) = return Int
 tcExpr ELitTrue = return Bool
 tcExpr ELitFalse = return Bool
@@ -143,6 +164,13 @@ tcExpr (EOr e1 e2) = tcExpr (EAnd e1 e2)
 
 tcExpr' :: Type -> Expr -> String -> StateT Env Err ()
 tcExpr' t e s = do
+    te <- tcExpr e
+    checkInit e
+    if t == te then return ()
+    else lift $ Bad s
+
+tcExpr'NoInit :: Type -> Expr -> String -> StateT Env Err ()
+tcExpr'NoInit t e s = do
     te <- tcExpr e
     if t == te then return ()
     else lift $ Bad s
