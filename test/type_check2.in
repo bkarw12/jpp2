@@ -1,9 +1,22 @@
-// typowanie
+// typowanie, redeklaracje
+
+int a = 1;
 
 int main() {
     int a;
-    int b = a;
+    {
+        string a = "5";
+    }
 
+    while (true) {
+        string a = "c";
+        a = "d";
+    }
+
+    for (a = 1 to 5) {
+        // boolean a = true;
+    }
+    
     return 0;
 }
 
