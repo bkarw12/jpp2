@@ -10,6 +10,7 @@ int main() {
 
     for (a = 3 + 5 to -23) {
         break;
+        int a = 2;
         int i = 3 / 20;
         {
             while (false || true) {
@@ -24,4 +25,4 @@ int a = 5 + 2;
 // string b = "xD";
 boolean c = true;
 int d = 2 * 2;
-int e = d + 2;
+// int e = d + 2;

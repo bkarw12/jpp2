@@ -5,6 +5,7 @@ module CompileCheck where
 -- Imports
 
 import Data.Map
+import qualified Data.Set
 import Control.Monad.State
 import Control.Monad.Reader
 
@@ -13,6 +14,8 @@ import AbsGram
 import ErrM
 
 -- Used data types -- TODO: rename some types? (like StateT Env Err)
+
+type Set = Data.Set.Set
 
 type Var = String
 type Loc = Int
@@ -24,7 +27,8 @@ type FVal = (Type, [Arg], Block)
 type LEnv = Map Var Loc
 type VEnv = Map Loc VVal
 type FEnv = Map Var FVal
-type Env = (LEnv, VEnv, FEnv, Integer, Type)
+type REnv = Set Var
+type Env = (LEnv, VEnv, FEnv, REnv, Integer, Type)
 
 -- Auxillary functions
 
@@ -37,14 +41,14 @@ newLoc m
 
 getLoc :: Var -> StateT Env Err (Loc)
 getLoc var = do
-    (ls,_,_,_,_) <- get
+    (ls,_,_,_,_,_) <- get
     case Data.Map.lookup var ls of
         Nothing  -> lift $ Bad $ "Error: variable " ++ show var ++ " not declared."
         Just loc -> return loc
 
 getVVal :: Loc -> StateT Env Err (VVal)
 getVVal loc = do
-    (_,vs,_,_,_) <- get
+    (_,vs,_,_,_,_) <- get
     case Data.Map.lookup loc vs of
         Nothing   -> lift $ Bad $ "Unknown error: wrong location?"
         Just vval -> return vval
@@ -67,7 +71,7 @@ insertArgs :: Env -> [Arg] -> Env
 insertArgs env args = Prelude.foldl insertArg env args
 
 insertArg :: Env -> Arg -> Env
-insertArg (ls,vs,fs,n,ret) (Arg t (Ident var)) = (ls',vs',fs,n,ret)
+insertArg (ls,vs,fs,rs,n,ret) (Arg t (Ident var)) = (ls',vs',fs,rs,n,ret)
     where   loc = newLoc vs
             ls' = insert var loc ls
             vs' = insert loc (t,typeToVal t,n) vs
@@ -84,7 +88,8 @@ checkInsertVar t (Init (Ident var) e) = do
 
 checkInsertVar' :: Type -> Val -> Var -> StateT Env Err ()
 checkInsertVar' t val var = do
-    (ls,vs,fs,n,ret) <- get
+    checkReadOnly var $ "Cannot redeclare read-only variable " ++ var ++ "."
+    (ls,vs,fs,rs,n,ret) <- get
     let loc = newLoc vs
     case Data.Map.lookup var ls of
         Nothing  -> return ()
@@ -94,7 +99,7 @@ checkInsertVar' t val var = do
             else return ()
     let ls' = insert var loc ls
         vs' = insert loc (t,val,n) vs
-    put (ls',vs',fs,n,ret)
+    put (ls',vs',fs,rs,n,ret)
 
 checkArgs :: [Arg] -> [Expr] -> String -> String -> StateT Env Err ()
 checkArgs args es s1 s2
@@ -122,11 +127,17 @@ checkInit _ = return ()
 
 initVar :: Var -> StateT Env Err ()
 initVar var = do
-    (ls,vs,fs,n,ret) <- get
+    (ls,vs,fs,rs,n,ret) <- get
     loc <- getLoc var
     (t,_,num) <- getVVal loc
     let vs' = insert loc (t,typeToVal t,num) vs
-    put (ls,vs',fs,n,ret)
+    put (ls,vs',fs,rs,n,ret)
+
+checkReadOnly :: Var -> String -> StateT Env Err ()
+checkReadOnly var s = do
+    (_,_,_,rs,_,_) <- get
+    if Data.Set.member var rs then lift $ Bad s
+    else return ()
         
 -- Raw type checking
 
@@ -135,17 +146,18 @@ tcBlock (Block stmts) = mapM_ tcStmt stmts
 
 tcStmt :: Stmt -> StateT Env Err ()
 tcStmt (BStmt b) = do
-    (ls,vs,fs,n,ret) <- get
-    put (ls,vs,fs,n+1,ret)
+    (ls,vs,fs,rs,n,ret) <- get
+    put (ls,vs,fs,rs,n+1,ret)
     tcBlock b
-    (_,vs,fs,_,_) <- get
-    put (ls,vs,fs,n,ret)
+    (_,vs,fs,_,_,_) <- get
+    put (ls,vs,fs,rs,n,ret)
 tcStmt (DeclStmt (Decl t items)) = mapM_ (checkInsertVar t) items
 tcStmt (Ass id e) = do
     t <- tcExpr e
     checkInit e
     tcExpr'NoInit t (EVar id) $ "Error: Types mismatch in variable assignment: \"" ++ show id ++ "\"."
     let (Ident var) = id
+    checkReadOnly var $ "Error: cannot assign value to read-only variable: " ++ var ++ "."
     initVar var
 tcStmt (Incr id) = tcExpr' Int (EVar id) $ "Error: Types mismatch in variable incrementation: \"" ++ show id ++ "\"."
 tcStmt (Decr id) = tcExpr' Int (EVar id) $ "Error: Types mismatch in variable decrementation: \"" ++ show id ++ "\"."
@@ -160,7 +172,10 @@ tcStmt (For id e1 e2 stmt) = do
     tcExpr' Int e1 $ "Error: For loop start expression " ++ show e1 ++ " is not an int."
     tcExpr' Int e2 $ "Error: For loop end expression " ++ show e1 ++ " is not an int."
     let (Ident var) = id
-    initVar var 
+    initVar var
+    (ls,vs,fs,rs,ret,n) <- get
+    let rs' = Data.Set.insert var rs
+    put (ls,vs,fs,rs',ret,n)
     tcStmt stmt
 tcStmt (While e stmt) = do
     tcExpr' Bool e $ "Error: While loop condition expression " ++ show e ++ " is not a boolean."
@@ -169,10 +184,10 @@ tcStmt (SExp e) = do
     tcExpr e
     return ()
 tcStmt (Ret e) = do
-    (_,_,_,_,ret) <- get
+    (_,_,_,_,_,ret) <- get
     tcExpr' ret e $ "Error: Types mismatch in return: " ++ show (Ret e) ++ "."
 tcStmt VRet = do
-    (_,_,_,_,ret) <- get
+    (_,_,_,_,_,ret) <- get
     if ret == Void then return ()
     else lift $ Bad $ "Error: Types mismatch in return: " ++ show VRet ++ "."
 tcStmt _ = return ()
@@ -185,7 +200,7 @@ tcExpr (ELitInt _) = return Int
 tcExpr ELitTrue = return Bool
 tcExpr ELitFalse = return Bool
 tcExpr (EApp (Ident var) es) = do
-    (_,_,fs,_,_) <- get
+    (_,_,fs,_,_,_) <- get
     case Data.Map.lookup var fs of
         Nothing         -> lift $ Bad $ "Error: function \"" ++ show var ++ "\" not declared."
         Just (t,args,_) -> do
@@ -241,7 +256,7 @@ tcProg env = do
     return ()
 
 tcVars :: Env -> Err ()
-tcVars (ls,vs,_,_,_) = mapM_ (tcVars' ls) $ toList vs
+tcVars (ls,vs,_,_,_,_) = mapM_ (tcVars' ls) $ toList vs
 
 tcVars' :: LEnv -> (Loc, VVal) -> Err ()
 tcVars' ls (loc,vval) = case vval of
@@ -252,16 +267,16 @@ tcVars' ls (loc,vval) = case vval of
 
 tcFuncs :: Env -> Err ()
 tcFuncs env = mapM_ (tcFuncs' env) $ toList fs
-    where (_,_,fs,_,_) = env
+    where (_,_,fs,_,_,_) = env
 
 tcFuncs' :: Env -> (Var, FVal) -> Err ((), Env)
-tcFuncs' (ls,vs,fs,n,_) (_,(t,args,b)) = runStateT (tcBlock b) $ insertArgs env' args
-    where env' = (ls,vs,fs,n,t)
+tcFuncs' (ls,vs,fs,rs,n,_) (_,(t,args,b)) = runStateT (tcBlock b) $ insertArgs env' args
+    where env' = (ls,vs,fs,rs,n,t)
 
 -- Checking global declarations
 
 checkTopDef :: Program -> Err Env
-checkTopDef prog = case runStateT (checkTopDef' prog) (empty, empty, empty, 1, Void) of
+checkTopDef prog = case runStateT (checkTopDef' prog) (empty, empty, empty, Data.Set.empty, 1, Void) of
     Ok (_,s) -> Ok s
     Bad e     -> Bad e 
 
@@ -270,10 +285,10 @@ checkTopDef' (Program topdefs) = mapM_ checkTopDef'' topdefs
 
 checkTopDef'' :: TopDef -> StateT Env Err ()
 checkTopDef'' (FnDef t (Ident var) args b) = do
-    (ls,vs,fs,n,ret) <- get
+    (ls,vs,fs,rs,n,ret) <- get
     if notMember var fs then 
         let fs' = insert var (t,args,b) fs 
-        in put (ls,vs,fs',n,ret)
+        in put (ls,vs,fs',rs,n,ret)
     else lift $ Bad $ "Error: Function redeclaration: " ++ var ++ "."
 checkTopDef'' (VDef (Decl t items)) = mapM_ (checkTopDefV t) items
 
@@ -285,12 +300,12 @@ checkTopDefV t (Init (Ident var) e) = do
 
 checkTopDefV' :: Val -> Type -> Var -> StateT Env Err ()
 checkTopDefV' val t var = do
-    (ls,vs,fs,n,ret) <- get
+    (ls,vs,fs,rs,n,ret) <- get
     if notMember var ls then
         let loc = newLoc vs
             ls' = insert var loc ls
             vs' = insert loc (t,val,0) vs
-        in put (ls',vs',fs,n,ret)
+        in put (ls',vs',fs,rs,n,ret)
     else lift $ Bad $ "Error: Global variable redeclaration: " ++ var ++ "."
 
 calcTopDefVal :: Expr -> StateT Env Err Val -- TODO add more expressions?
@@ -327,7 +342,7 @@ calcTopDefVal2' e1 e2 v s1 s2 = do
 -- Main function check
 
 checkMain :: Env -> Err ()
-checkMain (_,_,fs,_,_) = case Data.Map.lookup "main" fs of
+checkMain (_,_,fs,_,_,_) = case Data.Map.lookup "main" fs of
     Nothing -> Bad $ "Error: Main function not found."
     Just (t,args,_) -> if t /= Int then Bad $ "Error: Main function return type should be int."
         else if args /= [] then Bad $ "Error: Main function does not take any arguments."
@@ -336,7 +351,7 @@ checkMain (_,_,fs,_,_) = case Data.Map.lookup "main" fs of
 -- Check if every function has a return (excl. void functions)
 
 checkReturn :: Env -> Err ()
-checkReturn (_,_,fs,_,_) = mapM_ checkReturn' $ toList fs
+checkReturn (_,_,fs,_,_,_) = mapM_ checkReturn' $ toList fs
 
 checkReturn' :: (Var, FVal) -> Err ()
 checkReturn' (_,(Void,_,_)) = return ()

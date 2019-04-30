@@ -1,10 +1,9 @@
 Błędy kompilacji:
-- czy można nazwać jednocześnie x np. zmienną globalną (albo lokalną) i funkcję?
 - zadeklarowanie funkcji o nazwie takiej samej jak wbudowane
-- zmienne read-only
 
 Błędy wykonania:
 - dzielenie przez 0
 
 Pierdółki:
 - poprawić errory na bardziej sensowne (compile-time)
+- przerobić typ State na rekordy zamiast krotek?
