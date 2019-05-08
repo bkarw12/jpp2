@@ -6,4 +6,3 @@ Błędy wykonania:
 
 Pierdółki:
 - poprawić errory na bardziej sensowne (compile-time)
-- przerobić typ State na rekordy zamiast krotek?

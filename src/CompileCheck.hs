@@ -14,7 +14,7 @@ import PrintGram
 
 import ErrM
 
--- Used data types -- TODO: rename some types? (like StateT Env Err)
+-- Used data types
 
 type Set = Data.Set.Set
 
@@ -29,7 +29,6 @@ type LEnv = Map Var Loc
 type VEnv = Map Loc VVal
 type FEnv = Map Var FVal
 type REnv = Set Var
--- type Env = (LEnv, VEnv, FEnv, REnv, Integer, Type)
 data Env = Env {
     lEnv :: LEnv,
     vEnv :: VEnv,
@@ -39,9 +38,11 @@ data Env = Env {
     ret :: Type
 }
 
+type Stt a = StateT Env Err a
+
 -- Auxillary functions
 
-liftError :: Print a => a -> String -> StateT Env Err ()
+liftError :: Print a => a -> String -> Stt ()
 liftError x s = return ()
 
 newLoc :: Map Loc a -> Loc
@@ -51,21 +52,21 @@ newLoc m
 
 -- TODO: generalize these getters?
 
-getLoc :: Var -> StateT Env Err (Loc)
+getLoc :: Var -> Stt Loc
 getLoc var = do
     env <- get
     case Data.Map.lookup var $ lEnv env of
         Nothing  -> lift $ Bad $ "Error: variable " ++ show var ++ " not declared."
         Just loc -> return loc
 
-getVVal :: Loc -> StateT Env Err (VVal)
+getVVal :: Loc -> Stt VVal
 getVVal loc = do
     env <- get
     case Data.Map.lookup loc $ vEnv env of
         Nothing   -> lift $ Bad $ "Unknown error: wrong location?"
         Just vval -> return vval
 
-getVVal' :: Var -> StateT Env Err (VVal)
+getVVal' :: Var -> Stt VVal
 getVVal' var = do
     loc <- getLoc var
     getVVal loc
@@ -89,7 +90,7 @@ insertArg env (Arg t (Ident var)) = env {lEnv = ls', vEnv = vs'}
             ls' = insert var loc $ lEnv env
             vs' = insert loc (t,typeToVal t,depth env) vs
 
-checkInsertVar :: Type -> Item -> StateT Env Err ()
+checkInsertVar :: Type -> Item -> Stt ()
 checkInsertVar Void _ = lift $ Bad $ "Error: Variable declared with wrong type: void."
 checkInsertVar (Fun _ _) _ = lift $ Bad $ "Error: Variable declared with wrong type: fun."
 checkInsertVar t (NoInit (Ident var)) = checkInsertVar' t VNone var
@@ -99,7 +100,7 @@ checkInsertVar t (Init (Ident var) e) = do
     if t == te then checkInsertVar' t (typeToVal t) var
     else lift $ Bad $ "Error: Types mismatch in variable declaration: \"" ++ var ++ "\"."
 
-checkInsertVar' :: Type -> Val -> Var -> StateT Env Err ()
+checkInsertVar' :: Type -> Val -> Var -> Stt ()
 checkInsertVar' t val var = do
     checkReadOnly var $ "Cannot redeclare read-only variable " ++ var ++ "."
     env <- get
@@ -117,15 +118,15 @@ checkInsertVar' t val var = do
         vs' = insert loc (t,val,n) vs
     put env {lEnv = ls', vEnv = vs'}
 
-checkArgs :: [Arg] -> [Expr] -> String -> String -> StateT Env Err ()
+checkArgs :: [Arg] -> [Expr] -> String -> String -> Stt ()
 checkArgs args es s1 s2
     | length args /= length es  = lift $ Bad s1
     | otherwise                 = mapM_ (checkArgs' s2) $ zip args es
 
-checkArgs' :: String -> (Arg, Expr) -> StateT Env Err ()
+checkArgs' :: String -> (Arg, Expr) -> Stt ()
 checkArgs' s ((Arg t _), e) = tcExpr' t e s
 
-checkInit :: Expr -> StateT Env Err ()
+checkInit :: Expr -> Stt ()
 checkInit (EVar (Ident var)) = do
     (_,val,_) <- getVVal' var
     if val == VNone then lift $ Bad $ "Error: variable " ++ show var ++ " not initialized."
@@ -141,7 +142,7 @@ checkInit (EAnd e1 e2) = checkInit (EMul e1 Times e2)
 checkInit (EOr e1 e2) = checkInit (EMul e1 Times e2)
 checkInit _ = return ()
 
-initVar :: Var -> StateT Env Err ()
+initVar :: Var -> Stt ()
 initVar var = do
     env <- get
     loc <- getLoc var
@@ -149,7 +150,7 @@ initVar var = do
     let vs' = insert loc (t,typeToVal t,num) $ vEnv env
     put env {vEnv = vs'}
 
-checkReadOnly :: Var -> String -> StateT Env Err ()
+checkReadOnly :: Var -> String -> Stt ()
 checkReadOnly var s = do
     env <- get
     if Data.Set.member var $ rEnv env then lift $ Bad s
@@ -157,10 +158,10 @@ checkReadOnly var s = do
         
 -- Raw type checking
 
-tcBlock :: Block -> StateT Env Err ()
+tcBlock :: Block -> Stt ()
 tcBlock (Block stmts) = mapM_ tcStmt stmts
 
-tcStmt :: Stmt -> StateT Env Err ()
+tcStmt :: Stmt -> Stt ()
 tcStmt (BStmt b) = do
     env <- get
     put env {depth = depth env + 1}
@@ -208,7 +209,7 @@ tcStmt VRet = do
     else lift $ Bad $ "Error: Types mismatch in return: " ++ show VRet ++ "."
 tcStmt _ = return ()
 
-tcExpr :: Expr -> StateT Env Err Type
+tcExpr :: Expr -> Stt Type
 tcExpr (EVar (Ident var)) = do
     (t,_,_) <- getVVal' var
     return t
@@ -247,20 +248,20 @@ tcExpr (EAnd e1 e2) = do
     return Bool
 tcExpr (EOr e1 e2) = tcExpr (EAnd e1 e2)
 
-tcExpr' :: Type -> Expr -> String -> StateT Env Err ()
+tcExpr' :: Type -> Expr -> String -> Stt ()
 tcExpr' t e s = do
     te <- tcExpr e
     checkInit e
     if t == te then return ()
     else lift $ Bad s
 
-tcExpr'NoInit :: Type -> Expr -> String -> StateT Env Err ()
+tcExpr'NoInit :: Type -> Expr -> String -> Stt ()
 tcExpr'NoInit t e s = do
     te <- tcExpr e
     if t == te then return ()
     else lift $ Bad s
 
-tcExpr2' :: Type -> Expr -> Expr -> String -> String -> StateT Env Err ()
+tcExpr2' :: Type -> Expr -> Expr -> String -> String -> Stt ()
 tcExpr2' t e1 e2 s1 s2 = do
     tcExpr' t e1 s1
     tcExpr' t e2 s2
@@ -295,10 +296,10 @@ checkTopDef prog = case runStateT (checkTopDef' prog) $ Env empty empty empty Da
     Ok (_,s) -> Ok s
     Bad e     -> Bad e 
 
-checkTopDef' :: Program -> StateT Env Err ()
+checkTopDef' :: Program -> Stt ()
 checkTopDef' (Program topdefs) = mapM_ checkTopDef'' topdefs
 
-checkTopDef'' :: TopDef -> StateT Env Err ()
+checkTopDef'' :: TopDef -> Stt ()
 checkTopDef'' (FnDef t (Ident var) args b) = do
     env <- get
     let fs = fEnv env
@@ -308,13 +309,13 @@ checkTopDef'' (FnDef t (Ident var) args b) = do
     else lift $ Bad $ "Error: Function redeclaration: " ++ var ++ "."
 checkTopDef'' (VDef (Decl t items)) = mapM_ (checkTopDefV t) items
 
-checkTopDefV :: Type -> Item -> StateT Env Err ()
+checkTopDefV :: Type -> Item -> Stt ()
 checkTopDefV t (NoInit (Ident var)) = checkTopDefV' VNone t var
 checkTopDefV t (Init (Ident var) e) = do
     val <- calcTopDefVal e
     checkTopDefV' val t var
 
-checkTopDefV' :: Val -> Type -> Var -> StateT Env Err ()
+checkTopDefV' :: Val -> Type -> Var -> Stt ()
 checkTopDefV' val t var = do
     env <- get
     let ls = lEnv env
@@ -326,7 +327,7 @@ checkTopDefV' val t var = do
         in put env {lEnv = ls', vEnv = vs'}
     else lift $ Bad $ "Error: Global variable redeclaration: " ++ var ++ "."
 
-calcTopDefVal :: Expr -> StateT Env Err Val -- TODO add more expressions?
+calcTopDefVal :: Expr -> Stt Val
 calcTopDefVal (ELitInt _) = lift $ Ok VInt
 calcTopDefVal ELitTrue = lift $ Ok VBool
 calcTopDefVal ELitFalse = lift $ Ok VBool
@@ -346,13 +347,13 @@ calcTopDefVal (EAnd e1 e2) = calcTopDefVal2' e1 e2 VBool
 calcTopDefVal (EOr e1 e2) = calcTopDefVal (EAnd e1 e2)
 calcTopDefVal _  = lift $ Bad $ "Error: Expression assigned to global variable is not a constant value."
 
-calcTopDefVal' :: Expr -> Val -> String -> StateT Env Err Val
+calcTopDefVal' :: Expr -> Val -> String -> Stt Val
 calcTopDefVal' e v s = do
     val <- calcTopDefVal e
     if val /= v then lift $ Bad s
     else return v
 
-calcTopDefVal2' :: Expr -> Expr -> Val -> String -> String -> StateT Env Err Val
+calcTopDefVal2' :: Expr -> Expr -> Val -> String -> String -> Stt Val
 calcTopDefVal2' e1 e2 v s1 s2 = do
     calcTopDefVal' e1 v s1
     calcTopDefVal' e2 v s2
