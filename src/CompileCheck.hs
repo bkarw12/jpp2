@@ -28,7 +28,15 @@ type LEnv = Map Var Loc
 type VEnv = Map Loc VVal
 type FEnv = Map Var FVal
 type REnv = Set Var
-type Env = (LEnv, VEnv, FEnv, REnv, Integer, Type)
+-- type Env = (LEnv, VEnv, FEnv, REnv, Integer, Type)
+data Env = Env {
+    lEnv :: LEnv,
+    vEnv :: VEnv,
+    fEnv :: FEnv,
+    rEnv :: REnv,
+    depth :: Integer,
+    ret :: Type
+}
 
 -- Auxillary functions
 
@@ -41,15 +49,15 @@ newLoc m
 
 getLoc :: Var -> StateT Env Err (Loc)
 getLoc var = do
-    (ls,_,_,_,_,_) <- get
-    case Data.Map.lookup var ls of
+    env <- get
+    case Data.Map.lookup var $ lEnv env of
         Nothing  -> lift $ Bad $ "Error: variable " ++ show var ++ " not declared."
         Just loc -> return loc
 
 getVVal :: Loc -> StateT Env Err (VVal)
 getVVal loc = do
-    (_,vs,_,_,_,_) <- get
-    case Data.Map.lookup loc vs of
+    env <- get
+    case Data.Map.lookup loc $ vEnv env of
         Nothing   -> lift $ Bad $ "Unknown error: wrong location?"
         Just vval -> return vval
 
@@ -71,10 +79,11 @@ insertArgs :: Env -> [Arg] -> Env
 insertArgs env args = Prelude.foldl insertArg env args
 
 insertArg :: Env -> Arg -> Env
-insertArg (ls,vs,fs,rs,n,ret) (Arg t (Ident var)) = (ls',vs',fs,rs,n,ret)
-    where   loc = newLoc vs
-            ls' = insert var loc ls
-            vs' = insert loc (t,typeToVal t,n) vs
+insertArg env (Arg t (Ident var)) = env {lEnv = ls', vEnv = vs'}
+    where   vs  = vEnv env
+            loc = newLoc vs
+            ls' = insert var loc $ lEnv env
+            vs' = insert loc (t,typeToVal t,depth env) vs
 
 checkInsertVar :: Type -> Item -> StateT Env Err ()
 checkInsertVar Void _ = lift $ Bad $ "Error: Variable declared with wrong type: void."
@@ -89,8 +98,11 @@ checkInsertVar t (Init (Ident var) e) = do
 checkInsertVar' :: Type -> Val -> Var -> StateT Env Err ()
 checkInsertVar' t val var = do
     checkReadOnly var $ "Cannot redeclare read-only variable " ++ var ++ "."
-    (ls,vs,fs,rs,n,ret) <- get
-    let loc = newLoc vs
+    env <- get
+    let vs  = vEnv env
+        ls  = lEnv env
+        n   = depth env
+        loc = newLoc vs
     case Data.Map.lookup var ls of
         Nothing  -> return ()
         Just oldLoc -> do
@@ -99,7 +111,7 @@ checkInsertVar' t val var = do
             else return ()
     let ls' = insert var loc ls
         vs' = insert loc (t,val,n) vs
-    put (ls',vs',fs,rs,n,ret)
+    put env {lEnv = ls', vEnv = vs'}
 
 checkArgs :: [Arg] -> [Expr] -> String -> String -> StateT Env Err ()
 checkArgs args es s1 s2
@@ -127,16 +139,16 @@ checkInit _ = return ()
 
 initVar :: Var -> StateT Env Err ()
 initVar var = do
-    (ls,vs,fs,rs,n,ret) <- get
+    env <- get
     loc <- getLoc var
     (t,_,num) <- getVVal loc
-    let vs' = insert loc (t,typeToVal t,num) vs
-    put (ls,vs',fs,rs,n,ret)
+    let vs' = insert loc (t,typeToVal t,num) $ vEnv env
+    put env {vEnv = vs'}
 
 checkReadOnly :: Var -> String -> StateT Env Err ()
 checkReadOnly var s = do
-    (_,_,_,rs,_,_) <- get
-    if Data.Set.member var rs then lift $ Bad s
+    env <- get
+    if Data.Set.member var $ rEnv env then lift $ Bad s
     else return ()
         
 -- Raw type checking
@@ -146,11 +158,11 @@ tcBlock (Block stmts) = mapM_ tcStmt stmts
 
 tcStmt :: Stmt -> StateT Env Err ()
 tcStmt (BStmt b) = do
-    (ls,vs,fs,rs,n,ret) <- get
-    put (ls,vs,fs,rs,n+1,ret)
+    env <- get
+    put env {depth = depth env + 1}
     tcBlock b
-    (_,vs,fs,_,_,_) <- get
-    put (ls,vs,fs,rs,n,ret)
+    env' <- get
+    put env {vEnv = vEnv env', fEnv = fEnv env'}
 tcStmt (DeclStmt (Decl t items)) = mapM_ (checkInsertVar t) items
 tcStmt (Ass id e) = do
     t <- tcExpr e
@@ -173,9 +185,9 @@ tcStmt (For id e1 e2 stmt) = do
     tcExpr' Int e2 $ "Error: For loop end expression " ++ show e1 ++ " is not an int."
     let (Ident var) = id
     initVar var
-    (ls,vs,fs,rs,ret,n) <- get
-    let rs' = Data.Set.insert var rs
-    put (ls,vs,fs,rs',ret,n)
+    env <- get
+    let rs' = Data.Set.insert var $ rEnv env
+    put env {rEnv = rs'}
     tcStmt stmt
 tcStmt (While e stmt) = do
     tcExpr' Bool e $ "Error: While loop condition expression " ++ show e ++ " is not a boolean."
@@ -184,11 +196,11 @@ tcStmt (SExp e) = do
     tcExpr e
     return ()
 tcStmt (Ret e) = do
-    (_,_,_,_,_,ret) <- get
-    tcExpr' ret e $ "Error: Types mismatch in return: " ++ show (Ret e) ++ "."
+    env <- get
+    tcExpr' (ret env) e $ "Error: Types mismatch in return: " ++ show (Ret e) ++ "."
 tcStmt VRet = do
-    (_,_,_,_,_,ret) <- get
-    if ret == Void then return ()
+    env <- get
+    if ret env == Void then return ()
     else lift $ Bad $ "Error: Types mismatch in return: " ++ show VRet ++ "."
 tcStmt _ = return ()
 
@@ -200,8 +212,8 @@ tcExpr (ELitInt _) = return Int
 tcExpr ELitTrue = return Bool
 tcExpr ELitFalse = return Bool
 tcExpr (EApp (Ident var) es) = do
-    (_,_,fs,_,_,_) <- get
-    case Data.Map.lookup var fs of
+    env <- get
+    case Data.Map.lookup var $ fEnv env of
         Nothing         -> lift $ Bad $ "Error: function \"" ++ show var ++ "\" not declared."
         Just (t,args,_) -> do
             checkArgs args es 
@@ -256,7 +268,7 @@ tcProg env = do
     return ()
 
 tcVars :: Env -> Err ()
-tcVars (ls,vs,_,_,_,_) = mapM_ (tcVars' ls) $ toList vs
+tcVars env = mapM_ (tcVars' $ lEnv env) $ toList $ vEnv env
 
 tcVars' :: LEnv -> (Loc, VVal) -> Err ()
 tcVars' ls (loc,vval) = case vval of
@@ -266,17 +278,16 @@ tcVars' ls (loc,vval) = case vval of
     _               -> Bad $ "Error: types mismatch for global variable \"" ++ (keyFromValue ls loc) ++ "\" assignment."
 
 tcFuncs :: Env -> Err ()
-tcFuncs env = mapM_ (tcFuncs' env) $ toList fs
-    where (_,_,fs,_,_,_) = env
+tcFuncs env = mapM_ (tcFuncs' env) $ toList $ fEnv env
 
 tcFuncs' :: Env -> (Var, FVal) -> Err ((), Env)
-tcFuncs' (ls,vs,fs,rs,n,_) (_,(t,args,b)) = runStateT (tcBlock b) $ insertArgs env' args
-    where env' = (ls,vs,fs,rs,n,t)
+tcFuncs' env (_,(t,args,b)) = runStateT (tcBlock b) $ insertArgs env' args
+    where env' = env {ret = t}
 
 -- Checking global declarations
 
 checkTopDef :: Program -> Err Env
-checkTopDef prog = case runStateT (checkTopDef' prog) (empty, empty, empty, Data.Set.empty, 1, Void) of
+checkTopDef prog = case runStateT (checkTopDef' prog) $ Env empty empty empty Data.Set.empty 1 Void of
     Ok (_,s) -> Ok s
     Bad e     -> Bad e 
 
@@ -285,10 +296,11 @@ checkTopDef' (Program topdefs) = mapM_ checkTopDef'' topdefs
 
 checkTopDef'' :: TopDef -> StateT Env Err ()
 checkTopDef'' (FnDef t (Ident var) args b) = do
-    (ls,vs,fs,rs,n,ret) <- get
+    env <- get
+    let fs = fEnv env
     if notMember var fs then 
         let fs' = insert var (t,args,b) fs 
-        in put (ls,vs,fs',rs,n,ret)
+        in put env {fEnv = fs'}
     else lift $ Bad $ "Error: Function redeclaration: " ++ var ++ "."
 checkTopDef'' (VDef (Decl t items)) = mapM_ (checkTopDefV t) items
 
@@ -300,12 +312,14 @@ checkTopDefV t (Init (Ident var) e) = do
 
 checkTopDefV' :: Val -> Type -> Var -> StateT Env Err ()
 checkTopDefV' val t var = do
-    (ls,vs,fs,rs,n,ret) <- get
+    env <- get
+    let ls = lEnv env
     if notMember var ls then
-        let loc = newLoc vs
+        let vs  = vEnv env
+            loc = newLoc vs
             ls' = insert var loc ls
             vs' = insert loc (t,val,0) vs
-        in put (ls',vs',fs,rs,n,ret)
+        in put env {lEnv = ls', vEnv = vs'}
     else lift $ Bad $ "Error: Global variable redeclaration: " ++ var ++ "."
 
 calcTopDefVal :: Expr -> StateT Env Err Val -- TODO add more expressions?
@@ -342,7 +356,7 @@ calcTopDefVal2' e1 e2 v s1 s2 = do
 -- Main function check
 
 checkMain :: Env -> Err ()
-checkMain (_,_,fs,_,_,_) = case Data.Map.lookup "main" fs of
+checkMain env = case Data.Map.lookup "main" $ fEnv env of
     Nothing -> Bad $ "Error: Main function not found."
     Just (t,args,_) -> if t /= Int then Bad $ "Error: Main function return type should be int."
         else if args /= [] then Bad $ "Error: Main function does not take any arguments."
@@ -351,7 +365,7 @@ checkMain (_,_,fs,_,_,_) = case Data.Map.lookup "main" fs of
 -- Check if every function has a return (excl. void functions)
 
 checkReturn :: Env -> Err ()
-checkReturn (_,_,fs,_,_,_) = mapM_ checkReturn' $ toList fs
+checkReturn env = mapM_ checkReturn' $ toList $ fEnv env
 
 checkReturn' :: (Var, FVal) -> Err ()
 checkReturn' (_,(Void,_,_)) = return ()
