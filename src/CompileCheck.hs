@@ -42,17 +42,27 @@ type Stt a = StateT Env Err a
 
 -- Error messages
 
-eVarNoInit var = "variable \"" ++ var ++ "\" not initialized."
+eVarNoInit var = "variable not initialized: " ++ var
+eVarReadOnly var = "cannot assign value to read-only variable: " ++ var
 
-eVarUndeclared var = "variable \"" ++ var ++ "\" not declared."
-eVarDeclType var = "types mismatch in variable declaration: \"" ++ var ++ "\"."
-eVarRedecl var = "variable redeclaration: \"" ++ var ++ "\"."
-eVarRedeclRead var = "cannot redeclare read-only variable \"" ++ var ++ "\"."
+eVarUndeclared var = "variable not declared: " ++ var
+eVarDeclType var = "types mismatch in variable declaration: " ++ var
+eVarRedecl var = "variable redeclaration: " ++ var
+eVarRedeclRead var = "cannot redeclare read-only variable: " ++ var
 
-eVarVoid = "variable declared with wrong type: void."
-eVarFun = "variable declared with wrong type: fun."
+eVarVoid = "variable declared with wrong type: void"
+eVarFun = "variable declared with wrong type: fun"
 
-eNotBool e = "expression \"" ++ printTree e ++ "\" not a boolean."
+eTypeAss ass = "types mismatch in variable assignment: " ++ printTree ass
+
+eTypeInc id = "incremented variable not an int: " ++ printTree id
+eTypeDec id = "decremented variable not an int: " ++ printTree id
+eTypeFor id = "for loop argument not an int: " ++ printTree id
+eTypeInt e = "expression not an int: " ++ printTree e
+eTypeNegInt e = "negated expression not an int: " ++ printTree e
+eTypeBool e = "expression not a boolean: " ++ printTree e
+eTypeNotBool e = " \"Not\" expression not a boolean: " ++ printTree e
+eTypeCond e = "condition expression not a boolean: " ++ printTree e
 
 -- Auxillary functions
 
@@ -186,20 +196,20 @@ tcStmt (DeclStmt (Decl t items)) = mapM_ (checkInsertVar t) items
 tcStmt (Ass id e) = do
     t <- tcExpr e
     checkInit e
-    tcExpr'NoInit t (EVar id) $ "Error: Types mismatch in variable assignment: \"" ++ show id ++ "\"."
+    tcExpr'NoInit t (EVar id) $ eTypeAss (Ass id e)
     let (Ident var) = id
-    checkReadOnly var $ "Error: cannot assign value to read-only variable: " ++ var ++ "."
+    checkReadOnly var $ eVarReadOnly var
     initVar var
-tcStmt (Incr id) = tcExpr' Int (EVar id) $ "Error: Types mismatch in variable incrementation: \"" ++ show id ++ "\"."
-tcStmt (Decr id) = tcExpr' Int (EVar id) $ "Error: Types mismatch in variable decrementation: \"" ++ show id ++ "\"."
+tcStmt (Incr id) = tcExpr' Int (EVar id) $ eTypeInc id
+tcStmt (Decr id) = tcExpr' Int (EVar id) $ eTypeDec id
 tcStmt (Cond e stmt) = do 
-    tcExpr' Bool e $ "Error: Condition expression " ++ show e ++ " is not a boolean."
+    tcExpr' Bool e $ eTypeCond e
     tcStmt stmt
 tcStmt (CondElse e stmt1 stmt2) = do
     tcStmt (Cond e stmt1)
     tcStmt stmt2
 tcStmt (For id e1 e2 stmt) = do
-    tcExpr'NoInit Int (EVar id) $ "Error: For loop argument " ++ show id ++ " is not an int."
+    tcExpr'NoInit Int (EVar id) $ eTypeFor id
     tcExpr' Int e1 $ "Error: For loop start expression " ++ show e1 ++ " is not an int."
     tcExpr' Int e2 $ "Error: For loop end expression " ++ show e1 ++ " is not an int."
     let (Ident var) = id
@@ -241,15 +251,15 @@ tcExpr (EApp (Ident var) es) = do
             return t
 tcExpr (EString _) = return Str
 tcExpr (Neg e) = do
-    tcExpr' Int e $ "Error: Negated expression " ++ show e ++ " not an int."
+    tcExpr' Int e $ eTypeNegInt e
     return Int
 tcExpr (Not e) = do
-    tcExpr' Bool e $ "Error: \"Not\" expression " ++ show e ++ " not a boolean."
+    tcExpr' Bool e $ eTypeNotBool e
     return Bool
 tcExpr (EMul e1 _ e2) = do
     tcExpr2' Int e1 e2 
-        ("Error: expression " ++ show e1 ++ " not an int.") 
-        ("Error: expression " ++ show e2 ++ " not an int.")
+        (eTypeInt e1) 
+        (eTypeInt e2) 
     return Int
 tcExpr (EAdd e1 _ e2) = tcExpr (EMul e1 Times e2)
 tcExpr (ERel e1 _ e2) = do
@@ -257,8 +267,8 @@ tcExpr (ERel e1 _ e2) = do
     return Bool
 tcExpr (EAnd e1 e2) = do
     tcExpr2' Bool e1 e2
-        (eNotBool e1)
-        (eNotBool e2)
+        (eTypeBool e1)
+        (eTypeBool e2)
     return Bool
 tcExpr (EOr e1 e2) = tcExpr (EAnd e1 e2)
 
