@@ -40,10 +40,24 @@ data Env = Env {
 
 type Stt a = StateT Env Err a
 
+-- Error messages
+
+eVarNoInit var = "variable \"" ++ var ++ "\" not initialized."
+
+eVarUndeclared var = "variable \"" ++ var ++ "\" not declared."
+eVarDeclType var = "types mismatch in variable declaration: \"" ++ var ++ "\"."
+eVarRedecl var = "variable redeclaration: \"" ++ var ++ "\"."
+eVarRedeclRead var = "cannot redeclare read-only variable \"" ++ var ++ "\"."
+
+eVarVoid = "variable declared with wrong type: void."
+eVarFun = "variable declared with wrong type: fun."
+
+eNotBool e = "expression \"" ++ printTree e ++ "\" not a boolean."
+
 -- Auxillary functions
 
-liftError :: Print a => a -> String -> Stt ()
-liftError x s = return ()
+liftError :: String -> Stt a
+liftError s = lift $ Bad $ "Error: " ++ s
 
 newLoc :: Map Loc a -> Loc
 newLoc m 
@@ -56,7 +70,7 @@ getLoc :: Var -> Stt Loc
 getLoc var = do
     env <- get
     case Data.Map.lookup var $ lEnv env of
-        Nothing  -> lift $ Bad $ "Error: variable " ++ show var ++ " not declared."
+        Nothing  -> liftError $ eVarUndeclared var
         Just loc -> return loc
 
 getVVal :: Loc -> Stt VVal
@@ -91,18 +105,18 @@ insertArg env (Arg t (Ident var)) = env {lEnv = ls', vEnv = vs'}
             vs' = insert loc (t,typeToVal t,depth env) vs
 
 checkInsertVar :: Type -> Item -> Stt ()
-checkInsertVar Void _ = lift $ Bad $ "Error: Variable declared with wrong type: void."
-checkInsertVar (Fun _ _) _ = lift $ Bad $ "Error: Variable declared with wrong type: fun."
+checkInsertVar Void _ = liftError eVarVoid
+checkInsertVar (Fun _ _) _ = liftError eVarFun
 checkInsertVar t (NoInit (Ident var)) = checkInsertVar' t VNone var
 checkInsertVar t (Init (Ident var) e) = do
     te <- tcExpr e
     checkInit e
     if t == te then checkInsertVar' t (typeToVal t) var
-    else lift $ Bad $ "Error: Types mismatch in variable declaration: \"" ++ var ++ "\"."
+    else liftError $ eVarDeclType var
 
 checkInsertVar' :: Type -> Val -> Var -> Stt ()
 checkInsertVar' t val var = do
-    checkReadOnly var $ "Cannot redeclare read-only variable " ++ var ++ "."
+    checkReadOnly var $ eVarRedeclRead var
     env <- get
     let vs  = vEnv env
         ls  = lEnv env
@@ -112,7 +126,7 @@ checkInsertVar' t val var = do
         Nothing  -> return ()
         Just oldLoc -> do
             (_,_,m) <- getVVal oldLoc
-            if n <= m then lift $ Bad $ "Error: Variable redeclaration: " ++ var ++ "."
+            if n <= m then liftError $ eVarRedecl var
             else return ()
     let ls' = insert var loc ls
         vs' = insert loc (t,val,n) vs
@@ -120,7 +134,7 @@ checkInsertVar' t val var = do
 
 checkArgs :: [Arg] -> [Expr] -> String -> String -> Stt ()
 checkArgs args es s1 s2
-    | length args /= length es  = lift $ Bad s1
+    | length args /= length es  = liftError s1
     | otherwise                 = mapM_ (checkArgs' s2) $ zip args es
 
 checkArgs' :: String -> (Arg, Expr) -> Stt ()
@@ -129,7 +143,7 @@ checkArgs' s ((Arg t _), e) = tcExpr' t e s
 checkInit :: Expr -> Stt ()
 checkInit (EVar (Ident var)) = do
     (_,val,_) <- getVVal' var
-    if val == VNone then lift $ Bad $ "Error: variable " ++ show var ++ " not initialized."
+    if val == VNone then liftError $ eVarNoInit var
     else return ()
 checkInit (Neg e) = checkInit e
 checkInit (Not e) = checkInit e
@@ -153,7 +167,7 @@ initVar var = do
 checkReadOnly :: Var -> String -> Stt ()
 checkReadOnly var s = do
     env <- get
-    if Data.Set.member var $ rEnv env then lift $ Bad s
+    if Data.Set.member var $ rEnv env then liftError s
     else return ()
         
 -- Raw type checking
@@ -243,8 +257,8 @@ tcExpr (ERel e1 _ e2) = do
     return Bool
 tcExpr (EAnd e1 e2) = do
     tcExpr2' Bool e1 e2
-        ("Error: expression " ++ show e1 ++ " not a boolean.")
-        ("Error: expression " ++ show e2 ++ " not a boolean.")
+        (eNotBool e1)
+        (eNotBool e2)
     return Bool
 tcExpr (EOr e1 e2) = tcExpr (EAnd e1 e2)
 
@@ -253,13 +267,13 @@ tcExpr' t e s = do
     te <- tcExpr e
     checkInit e
     if t == te then return ()
-    else lift $ Bad s
+    else liftError s
 
 tcExpr'NoInit :: Type -> Expr -> String -> Stt ()
 tcExpr'NoInit t e s = do
     te <- tcExpr e
     if t == te then return ()
-    else lift $ Bad s
+    else liftError s
 
 tcExpr2' :: Type -> Expr -> Expr -> String -> String -> Stt ()
 tcExpr2' t e1 e2 s1 s2 = do
@@ -350,7 +364,7 @@ calcTopDefVal _  = lift $ Bad $ "Error: Expression assigned to global variable i
 calcTopDefVal' :: Expr -> Val -> String -> Stt Val
 calcTopDefVal' e v s = do
     val <- calcTopDefVal e
-    if val /= v then lift $ Bad s
+    if val /= v then liftError s
     else return v
 
 calcTopDefVal2' :: Expr -> Expr -> Val -> String -> String -> Stt Val
