@@ -10,6 +10,7 @@ import Control.Monad.State
 import Control.Monad.Reader
 
 import AbsGram
+import PrintGram
 
 import ErrM
 
@@ -39,6 +40,9 @@ data Env = Env {
 }
 
 -- Auxillary functions
+
+liftError :: Print a => a -> String -> StateT Env Err ()
+liftError x s = return ()
 
 newLoc :: Map Loc a -> Loc
 newLoc m 
