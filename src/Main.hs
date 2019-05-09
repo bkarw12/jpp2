@@ -10,6 +10,7 @@ module Main where
 -- Imports and auxillary definitions
 --
 
+import Data.Map
 import System.IO ( getContents )
 import System.Environment ( getArgs )
 import System.Exit ( exitFailure, exitSuccess )
@@ -31,8 +32,19 @@ type ParseFun a = [Token] -> Err a
 -- Printing the result
 --
 
+printMap :: (Show a, Show b) => Map a b -> IO ()
+printMap = print . show . toList
+
 printEnv :: Env -> IO ()
-printEnv env = return ()
+printEnv env = do
+    putStrLn "Program Execution Successful!"
+    putStrLn "Locations Environment:"
+    printMap $ lEnv env
+    putStrLn "Variables Environment:"
+    printMap $ vEnv env
+    putStrLn "Functions Environment:"
+    printMap $ fEnv env
+    
 
 --
 -- Program running functions

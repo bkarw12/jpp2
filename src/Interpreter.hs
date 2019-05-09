@@ -154,6 +154,12 @@ interpretExp (ERel e1 op e2) = do
         GE  -> return $ VBool $ n1 >= n2 
         EQU -> return $ VBool $ n1 == n2
         NE  -> return $ VBool $ n1 /= n2
+interpretExp (EAnd e1 e2) = do
+    (b1,b2) <- exprBool2 e1 e2
+    return $ VBool $ b1 && b2
+interpretExp (EOr e1 e2) = do
+    (b1,b2) <- exprBool2 e1 e2
+    return $ VBool $ b1 || b2
 
 --
 -- Environment preparation

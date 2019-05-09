@@ -1,13 +1,13 @@
 // redeklaracja funkcji
 
 int main() {
-    int x = a(x);
-    x++;
-    printInt(a(x));
+    // int x = a(x);
+    // x++;
+    // printInt(a(x));
     return 0;
 }
 
 int a = 5;
 string b = "xD";
-boolean c = true;
-int x = 5 + 2;
+boolean c = 5 >= 2;
+int x = 5 / 2;
