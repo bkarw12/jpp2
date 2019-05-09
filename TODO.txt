@@ -6,6 +6,7 @@ Błędy wykonania:
 
 Pierdółki:
 - rozbić CompileCheck.hs na kilka plików
+- dodać skrypt test.sh odpalający programy z funkcją verbose tylko na errory
 
 Refactor:
 - znaleźć sposób, aby sprawdzanie globalnych zmiennych działało tak jak sprawdzanie zwykłych?
