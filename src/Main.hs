@@ -21,6 +21,7 @@ import PrintGram
 import AbsGram
 
 import CompileCheck
+import Interpreter
 
 import ErrM
 
@@ -44,8 +45,18 @@ run p s = let ts = myLexer s in case p ts of
     Ok prog -> do
         putStrLn "Parse Successful!"
         putStrLn $ show prog ++ "\n"
-        checkProgram prog
+        runProgram prog
         exitSuccess
+
+runProgram :: Program -> IO ()
+runProgram prog = case runProgram' prog of
+    Ok _  -> return ()
+    Bad e -> putStrLn e
+
+runProgram' :: Program -> Err ()
+runProgram' prog = do
+    checkProgram prog
+    runInterpreter prog
 
 --
 -- Main

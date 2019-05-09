@@ -409,13 +409,8 @@ checkReturnStmt _       = return ()
 -- Main error check function
 --
 
-checkProgram :: Program -> IO ()
-checkProgram prog = case checkProgram' prog of
-    Ok _  -> return ()
-    Bad e -> putStrLn e
-
-checkProgram' :: Program -> Err ()
-checkProgram' prog = do
+checkProgram :: Program -> Err ()
+checkProgram prog = do
     env <- checkTopDef prog
     tcProg env
     checkReturn env
