@@ -27,7 +27,7 @@ import ErrM
 type Set = Data.Set.Set
 
 type Var = String
-type Loc = Int
+type Loc = Integer
 data Val = VInt | VBool | VStr | VNone
     deriving (Eq)
 type VVal = (Type, Val, Integer)
@@ -307,7 +307,7 @@ tcFuncs' env (_,(t,args,b)) = runStateT (tcBlock b) $ insertArgs env' args
 
 checkTopDef :: Program -> Err Env
 checkTopDef prog = case runStateT (checkTopDef' prog) $ Env empty empty empty Data.Set.empty 1 Void of
-    Ok (_,s) -> Ok s
+    Ok (_,s)  -> Ok s
     Bad e     -> Bad e 
 
 checkTopDef' :: Program -> Stt ()
