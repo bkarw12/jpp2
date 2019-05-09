@@ -29,13 +29,15 @@ type LEnv = Map Var Loc
 type VEnv = Map Loc VVal
 type FEnv = Map Var FVal
 type REnv = Set Var
+
+-- the environment created to manage type checks
 data Env = Env {
-    lEnv :: LEnv,
-    vEnv :: VEnv,
-    fEnv :: FEnv,
-    rEnv :: REnv,
-    depth :: Integer,
-    ret :: Type
+    lEnv :: LEnv,       -- location env,            var -> loc
+    vEnv :: VEnv,       -- variables state env,     loc -> value
+    fEnv :: FEnv,       -- functions env,           var -> fvalue
+    rEnv :: REnv,       -- read-only var env,       set (var),      used to store read-only variables info
+    depth :: Integer,   -- variable decl. env,      int,            used to check for redeclarations in one block
+    ret :: Type         -- expected return type,    type,           used to check if the return expr type matches
 }
 
 type Stt a = StateT Env Err a
@@ -409,13 +411,16 @@ checkMain env = case Data.Map.lookup "main" $ fEnv env of
         else if args /= [] then Bad $ eMainArgs
         else return ()
 
--- Check if every function has a return (excl. void functions)
+--
+-- Check function returns (excl. void functions)
+--
 
 checkReturn :: Env -> Err ()
 checkReturn env = mapM_ checkReturn' $ toList $ fEnv env
 
+-- we don't need to check for return in void functions (it is caught in types mismatch)
 checkReturn' :: (Var, FVal) -> Err ()
-checkReturn' (_,(Void,_,_)) = return ()
+checkReturn' (_,(Void,_,_)) = return () 
 checkReturn' (var,(_,_,b)) = case checkReturnBlock b of
     Ok _  -> Bad $ eNonVoidEnd var
     Bad _ -> return ()

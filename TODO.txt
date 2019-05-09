@@ -5,4 +5,8 @@ Błędy wykonania:
 - dzielenie przez 0
 
 Pierdółki:
-- 
+- rozbić CompileCheck.hs na kilka plików
+
+Refactor:
+- znaleźć sposób, aby sprawdzanie globalnych zmiennych działało tak jak sprawdzanie zwykłych?
+- usunąć rEnv i wrzucić info o read-only do vEnv?
