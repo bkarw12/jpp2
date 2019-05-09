@@ -1,6 +1,14 @@
+--
+-- ###################
+-- Main program module
+-- ###################
+--
+
 module Main where
 
+--
 -- Imports and auxillary definitions
+--
 
 import System.IO ( getContents )
 import System.Environment ( getArgs )
@@ -18,16 +26,15 @@ import ErrM
 
 type ParseFun a = [Token] -> Err a
 
-myLLexer = myLexer
-
-
+--
 -- Program running functions
+--
 
 runFile :: ParseFun Program -> FilePath -> IO ()
 runFile p f = putStrLn (f ++ "\n") >> readFile f >>= run p
 
 run :: ParseFun Program -> String -> IO ()
-run p s = let ts = myLLexer s in case p ts of
+run p s = let ts = myLexer s in case p ts of
     Bad s -> do
         putStrLn "Parse Failed..."
         putStrLn "Tokens:"
@@ -40,7 +47,9 @@ run p s = let ts = myLLexer s in case p ts of
         checkProgram prog
         exitSuccess
 
+--
 -- Main
+--
 
 main :: IO ()
 main = do
