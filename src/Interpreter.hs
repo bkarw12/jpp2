@@ -90,6 +90,28 @@ insertVar t var val = do
         vs' = insert loc (t,val) vs
     put env {lEnv = ls', vEnv = vs'}
 
+exprBool :: Expr -> Stt Boolean
+exprBool e = do
+    (VBool b) <- interpretExp e
+    return b
+
+exprBool2 :: Expr -> Expr -> Stt (Boolean, Boolean)
+exprBool2 e1 e2 = do
+    b1 <- exprBool e1
+    b2 <- exprBool e2
+    return (b1,b2)
+
+exprInt :: Expr -> Stt Integer
+exprInt e = do
+    (VInt n) <- interpretExp e
+    return n
+
+exprInt2 :: Expr -> Expr -> Stt (Integer, Integer)
+exprInt2 e1 e2 = do
+    n1 <- exprInt e1
+    n2 <- exprInt e2
+    return (n1,n2)
+
 --
 -- Interpreter state functions (main operations on lexemes)
 --
@@ -104,14 +126,13 @@ interpretExp ELitFalse = return $ VBool False
 interpretExp (EApp (Ident var) es) = return VNone -- TODO
 interpretExp (EString s) = return $ VStr s
 interpretExp (Neg e) = do
-    (VInt n) <- interpretExp e
+    n <- exprInt e
     return $ VInt n
 interpretExp (Not e) = do
-    (VBool b) <- interpretExp e
+    b <- exprBool e
     return $ VBool $ not b
 interpretExp (EMul e1 op e2) = do
-    (VInt n1) <- interpretExp e1
-    (VInt n2) <- interpretExp e2
+    (n1,n2) <- exprInt2 e1 e2
     case op of
         Times -> return $ VInt $ n1 * n2
         Mod   -> return $ VInt $ n1 `mod` n2
@@ -119,21 +140,19 @@ interpretExp (EMul e1 op e2) = do
             if n2 == 0 then liftError $ reDivZero (EMul e1 op e2)
             else return $ VInt $ n1 `div` n2
 interpretExp (EAdd e1 op e2) = do
-    (VInt n1) <- interpretExp e1
-    (VInt n2) <- interpretExp e2
+    (n1,n2) <- exprInt2 e1 e2
     case op of
         Plus  -> return $ VInt $ n1 + n2
         Minus -> return $ VInt $ n1 - n2
 interpretExp (ERel e1 op e2) = do
-    (VBool b1) <- interpretExp e1
-    (VBool b2) <- interpretExp e2
+    (n1,n2) <- exprInt2 e1 e2
     case op of
-        LTH -> return $ VBool $ b1 < b2
-        LE  -> return $ VBool $ b1 <= b2
-        GTH -> return $ VBool $ b1 > b2
-        GE  -> return $ VBool $ b1 >= b2
-        EQU -> return $ VBool $ b1 == b2
-        NE  -> return $ VBool $ b1 /= b2
+        LTH -> return $ VBool $ n1 < n2
+        LE  -> return $ VBool $ n1 <= n2
+        GTH -> return $ VBool $ n1 > n2
+        GE  -> return $ VBool $ n1 >= n2 
+        EQU -> return $ VBool $ n1 == n2
+        NE  -> return $ VBool $ n1 /= n2
 
 --
 -- Environment preparation
