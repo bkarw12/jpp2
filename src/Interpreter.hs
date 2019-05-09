@@ -78,6 +78,13 @@ getVVal' var = do
     loc <- getLoc var
     getVVal loc
 
+getFun :: Var -> Stt FVal
+getFun var = do
+    env <- get
+    case Data.Map.lookup var $ fEnv env of
+        Nothing   -> lift $ Bad $ "Unknown error: bad function name?"
+        Just fval -> return fval
+
 --
 -- Auxillary state functions
 --
@@ -113,9 +120,18 @@ exprInt2 e1 e2 = do
     n2 <- exprInt e2
     return (n1,n2)
 
+runFunction :: FVal -> Stt ()
+runFunction fval = return ()
+
 --
 -- Interpreter state functions (main operations on lexemes)
 --
+
+interpretEnv :: Stt ()
+interpretEnv = do
+    env <- get
+    fval <- getFun "main"
+    runFunction fval
 
 interpretExp :: Expr -> Stt Val
 interpretExp (EVar (Ident var)) = do
@@ -193,4 +209,9 @@ prepareTopDef' t (Init (Ident var) e) = do
 runInterpreter :: Program -> Err Env
 runInterpreter prog = do
     env <- prepareEnv prog
-    return env
+    runInterpreter' env
+
+runInterpreter' :: Env -> Err Env
+runInterpreter' env = case runStateT (interpretEnv) env of
+    Ok (_,s) -> Ok s
+    Bad e    -> Bad e
