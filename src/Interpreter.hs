@@ -27,6 +27,7 @@ type Var = String
 type Boolean = Data.Bool.Bool
 type Loc = Integer
 data Val = VInt Integer | VBool Boolean | VStr String | VNone
+    deriving (Show)
 type VVal = (Type, Val)
 type FVal = ([Var], Block)
 
@@ -183,7 +184,7 @@ prepareTopDef' t (Init (Ident var) e) = do
 -- Main interpreter functions
 --
 
-runInterpreter :: Program -> Err ()
+runInterpreter :: Program -> Err Env
 runInterpreter prog = do
     env <- prepareEnv prog
-    return ()
+    return env

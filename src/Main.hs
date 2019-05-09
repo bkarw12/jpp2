@@ -20,12 +20,19 @@ import SkelGram
 import PrintGram
 import AbsGram
 
-import CompileCheck
+import CompileCheck ( checkProgram )
 import Interpreter
 
 import ErrM
 
 type ParseFun a = [Token] -> Err a
+
+--
+-- Printing the result
+--
+
+printEnv :: Env -> IO ()
+printEnv env = return ()
 
 --
 -- Program running functions
@@ -50,10 +57,10 @@ run p s = let ts = myLexer s in case p ts of
 
 runProgram :: Program -> IO ()
 runProgram prog = case runProgram' prog of
-    Ok _  -> return ()
-    Bad e -> putStrLn e
+    Ok env -> printEnv env
+    Bad e  -> putStrLn e
 
-runProgram' :: Program -> Err ()
+runProgram' :: Program -> Err Env
 runProgram' prog = do
     checkProgram prog
     runInterpreter prog
