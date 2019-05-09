@@ -47,6 +47,31 @@ type Stt a = StateT Env Err a
 argToVar :: Arg -> Var
 argToVar (Arg _ (Ident var)) = var
 
+newLoc :: Map Loc a -> Loc
+newLoc m 
+    | Data.Map.null m    = 0
+    | otherwise = (fst $ findMax m) + 1
+
+--
+-- Auxillary state functions
+--
+
+insertVar :: Type -> Var -> Val -> Stt ()
+insertVar t var val = do
+    env <- get
+    let vs  = vEnv env
+        loc = newLoc vs
+        ls' = insert var loc $ lEnv env
+        vs' = insert loc (t,val) vs
+    put env {lEnv = ls', vEnv = vs'}
+
+--
+-- Interpreter state functions (main operations on lexemes)
+--
+
+interpretExp :: Expr -> Stt Val
+interpretExp e = return VNone
+
 --
 -- Environment preparation
 --
@@ -67,7 +92,10 @@ prepareTopDef (FnDef _ (Ident var) args b) = do
 prepareTopDef (VDef (Decl t items)) = mapM_ (prepareTopDef' t) items
 
 prepareTopDef' :: Type -> Item -> Stt ()
-prepareTopDef' t it = return ()
+prepareTopDef' t (NoInit (Ident var)) = insertVar t var VNone
+prepareTopDef' t (Init (Ident var) e) = do
+    val <- interpretExp e
+    insertVar t var val
 
 --
 -- Main interpreter functions

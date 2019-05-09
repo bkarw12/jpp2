@@ -10,5 +10,6 @@ Pierdółki:
 - sprawdzić kolejność funkcji w każdej sekcji w każdym pliku (od najważniejszej do najmniej albo na odwrót)
 
 Refactor:
+- wydzielić wspólne rzeczy z Interpreter.hs i CompileCheck.hs do jednego pliku
 - znaleźć sposób, aby sprawdzanie globalnych zmiennych działało tak jak sprawdzanie zwykłych?
 - usunąć rEnv i wrzucić info o read-only do vEnv?
