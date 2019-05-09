@@ -8,6 +8,7 @@ module ErrM where
 
 import Control.Monad (MonadPlus(..), liftM)
 import Control.Applicative (Applicative(..), Alternative(..))
+import Control.Monad.Fail (MonadFail(..))
 
 data Err a = Ok a | Bad String
   deriving (Read, Show, Eq, Ord)
@@ -35,3 +36,7 @@ instance MonadPlus Err where
 instance Alternative Err where
   empty = mzero
   (<|>) = mplus
+
+-- needed for failable patterns in Interpreter.hs (Expr -> Val)
+instance MonadFail Err where
+  fail s = Bad s

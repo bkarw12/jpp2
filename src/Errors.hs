@@ -52,4 +52,10 @@ ceMainNotFound = "main function not found"
 ceMainRet = "main function return type should be int"
 ceMainArgs = "main function does not take any arguments"
 
-ceNonVoidEnd var = "reached end of non-void function " ++ var
+ceNonVoidEnd var = "reached end of non-void function: " ++ var
+
+--
+-- Runtime errors
+--
+
+reDivZero e = "division by zero in expression: " ++ printTree e

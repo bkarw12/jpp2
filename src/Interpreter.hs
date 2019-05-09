@@ -27,15 +27,18 @@ type Var = String
 type Boolean = Data.Bool.Bool
 type Loc = Integer
 data Val = VInt Integer | VBool Boolean | VStr String | VNone
+type VVal = (Type, Val)
+type FVal = ([Var], Block)
 
 type LEnv = Map Var Loc
-type VEnv = Map Loc (Type, Val)
-type FEnv = Map Var ([Var], Block)
+type VEnv = Map Loc VVal
+type FEnv = Map Var FVal
 
+-- the interpreter environment
 data Env = Env {
-    lEnv :: LEnv,
-    vEnv :: VEnv,
-    fEnv :: FEnv
+    lEnv :: LEnv,       -- location env,            var -> loc
+    vEnv :: VEnv,       -- variables state env,     loc -> value
+    fEnv :: FEnv        -- functions env,           var -> fvalue
 }
 
 type Stt a = StateT Env Err a
@@ -44,13 +47,35 @@ type Stt a = StateT Env Err a
 -- Auxillary functions
 --
 
-argToVar :: Arg -> Var
-argToVar (Arg _ (Ident var)) = var
+liftError :: String -> Stt a
+liftError s = lift $ Bad $ "Error: " ++ s
 
 newLoc :: Map Loc a -> Loc
 newLoc m 
     | Data.Map.null m    = 0
     | otherwise = (fst $ findMax m) + 1
+
+argToVar :: Arg -> Var
+argToVar (Arg _ (Ident var)) = var
+
+getLoc :: Var -> Stt Loc
+getLoc var = do
+    env <- get
+    case Data.Map.lookup var $ lEnv env of
+        Nothing  -> liftError $ ceVarUndeclared var
+        Just loc -> return loc
+
+getVVal :: Loc -> Stt VVal
+getVVal loc = do
+    env <- get
+    case Data.Map.lookup loc $ vEnv env of
+        Nothing   -> lift $ Bad $ "Unknown error: wrong location?"
+        Just vval -> return vval
+
+getVVal' :: Var -> Stt VVal
+getVVal' var = do
+    loc <- getLoc var
+    getVVal loc
 
 --
 -- Auxillary state functions
@@ -70,7 +95,45 @@ insertVar t var val = do
 --
 
 interpretExp :: Expr -> Stt Val
-interpretExp e = return VNone
+interpretExp (EVar (Ident var)) = do
+    (_,val) <- getVVal' var
+    return val
+interpretExp (ELitInt n) = return $ VInt n
+interpretExp ELitTrue = return $ VBool True
+interpretExp ELitFalse = return $ VBool False
+interpretExp (EApp (Ident var) es) = return VNone -- TODO
+interpretExp (EString s) = return $ VStr s
+interpretExp (Neg e) = do
+    (VInt n) <- interpretExp e
+    return $ VInt n
+interpretExp (Not e) = do
+    (VBool b) <- interpretExp e
+    return $ VBool $ not b
+interpretExp (EMul e1 op e2) = do
+    (VInt n1) <- interpretExp e1
+    (VInt n2) <- interpretExp e2
+    case op of
+        Times -> return $ VInt $ n1 * n2
+        Mod   -> return $ VInt $ n1 `mod` n2
+        Div   -> do
+            if n2 == 0 then liftError $ reDivZero (EMul e1 op e2)
+            else return $ VInt $ n1 `div` n2
+interpretExp (EAdd e1 op e2) = do
+    (VInt n1) <- interpretExp e1
+    (VInt n2) <- interpretExp e2
+    case op of
+        Plus  -> return $ VInt $ n1 + n2
+        Minus -> return $ VInt $ n1 - n2
+interpretExp (ERel e1 op e2) = do
+    (VBool b1) <- interpretExp e1
+    (VBool b2) <- interpretExp e2
+    case op of
+        LTH -> return $ VBool $ b1 < b2
+        LE  -> return $ VBool $ b1 <= b2
+        GTH -> return $ VBool $ b1 > b2
+        GE  -> return $ VBool $ b1 >= b2
+        EQU -> return $ VBool $ b1 == b2
+        NE  -> return $ VBool $ b1 /= b2
 
 --
 -- Environment preparation
