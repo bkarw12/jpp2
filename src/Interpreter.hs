@@ -28,8 +28,9 @@ type Boolean = Data.Bool.Bool
 type Loc = Integer
 data Val = VInt Integer | VBool Boolean | VStr String | VNone
     deriving (Show)
+data RetVal = IRet Val | NoRet
 type VVal = (Type, Val)
-type FVal = ([Var], Block)
+type FVal = ([Arg], Block)
 
 type LEnv = Map Var Loc
 type VEnv = Map Loc VVal
@@ -56,15 +57,16 @@ newLoc m
     | Data.Map.null m    = 0
     | otherwise = (fst $ findMax m) + 1
 
-argToVar :: Arg -> Var
-argToVar (Arg _ (Ident var)) = var
-
 getLoc :: Var -> Stt Loc
 getLoc var = do
     env <- get
     case Data.Map.lookup var $ lEnv env of
         Nothing  -> liftError $ ceVarUndeclared var
         Just loc -> return loc
+
+retvalToVal :: RetVal -> Val
+retvalToVal NoRet = VNone
+retvalToVal (IRet val) = val
 
 getVVal :: Loc -> Stt VVal
 getVVal loc = do
@@ -98,6 +100,9 @@ insertVar t var val = do
         vs' = insert loc (t,val) vs
     put env {lEnv = ls', vEnv = vs'}
 
+insertArg :: Arg -> Stt ()
+insertArg (Arg t (Ident var)) = insertVar t var VNone
+
 exprBool :: Expr -> Stt Boolean
 exprBool e = do
     (VBool b) <- interpretExp e
@@ -120,18 +125,39 @@ exprInt2 e1 e2 = do
     n2 <- exprInt e2
     return (n1,n2)
 
-runFunction :: FVal -> Stt ()
-runFunction fval = return ()
+runFunction :: FVal -> Stt Val
+runFunction (args,b) = do
+    env <- get
+    let ls = lEnv env
+    mapM_ insertArg args
+    ret <- interpretBlock b
+    env' <- get
+    put env' {lEnv = ls}
+    return $ retvalToVal ret
 
 --
 -- Interpreter state functions (main operations on lexemes)
 --
 
-interpretEnv :: Stt ()
+interpretEnv :: Stt Val
 interpretEnv = do
     env <- get
     fval <- getFun "main"
     runFunction fval
+
+interpretBlock :: Block -> Stt RetVal
+interpretBlock (Block stmts) = interpretBlock' stmts
+
+interpretBlock' :: [Stmt] -> Stt RetVal
+interpretBlock' [] = return NoRet
+interpretBlock' (stmt:stmts) = do
+    retval <- interpretStmt stmt
+    case retval of
+        NoRet -> interpretBlock' stmts
+        _     -> return retval
+
+interpretStmt :: Stmt -> Stt RetVal
+interpretStmt stmt = return NoRet
 
 interpretExp :: Expr -> Stt Val
 interpretExp (EVar (Ident var)) = do
@@ -192,7 +218,7 @@ prepareEnv' (Program topdefs) = mapM_ prepareTopDef topdefs
 prepareTopDef :: TopDef -> Stt ()
 prepareTopDef (FnDef _ (Ident var) args b) = do
     env <- get
-    let fs' = insert var (Prelude.map argToVar args,b) $ fEnv env
+    let fs' = insert var (args,b) $ fEnv env
     put env {fEnv = fs'}
 prepareTopDef (VDef (Decl t items)) = mapM_ (prepareTopDef' t) items
 
