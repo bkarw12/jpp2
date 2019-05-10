@@ -39,12 +39,21 @@ type FEnv = Map Var FVal
 
 -- the interpreter environment
 data Env = Env {
-    lEnv :: LEnv,       -- location env,            var -> loc
-    vEnv :: VEnv,       -- variables state env,     loc -> value
-    fEnv :: FEnv        -- functions env,           var -> fvalue
+    lEnv :: LEnv,       -- location env,                var -> loc
+    vEnv :: VEnv,       -- variables state env,         loc -> value
+    fEnv :: FEnv,       -- functions env,               var -> fvalue
+    output :: [String]  -- list of things to stdout     [string]
 }
 
 type Stt a = StateT Env Err a
+
+--
+-- Predefined functions
+--
+predefinedFunctions :: [Var]
+predefinedFunctions = [
+    "printInt",
+    "printString"]
 
 --
 -- Auxillary functions
@@ -92,6 +101,12 @@ getFun var = do
     case Data.Map.lookup var $ fEnv env of
         Nothing   -> lift $ Bad $ "Unknown error: bad function name?"
         Just fval -> return fval
+
+addOutput :: String -> Stt ()
+addOutput s = do
+    env <- get
+    let out' = s:(output env)
+    put env {output = out'}
 
 --
 -- Auxillary state functions
@@ -150,14 +165,25 @@ exprInt2 e1 e2 = do
 
 runFunction :: Var -> [Val] -> Stt Val
 runFunction var vals = do
-    (args,b) <- getFun var
-    env <- get
-    let ls = lEnv env
-    mapM_ insertArg $ zip args vals
-    ret <- interpretBlock b
-    env' <- get
-    put env' {lEnv = ls}
-    return $ retvalToVal ret
+    if var `elem` predefinedFunctions then runPredef var vals
+    else do
+        (args,b) <- getFun var
+        env <- get
+        let ls = lEnv env
+        mapM_ insertArg $ zip args vals
+        ret <- interpretBlock b
+        env' <- get
+        put env' {lEnv = ls}
+        return $ retvalToVal ret
+
+runPredef :: Var -> [Val] -> Stt Val
+runPredef "printInt" [VInt n] = do
+    addOutput $ show n
+    return VNone
+runPredef "printString" [VStr s] = do
+    addOutput s
+    return VNone
+runPredef _ _ = lift $ Bad "Unknown error: wrong predefined function?"
 
 --
 -- Interpreter state functions (main operations on lexemes)
@@ -295,7 +321,7 @@ interpretExpr (EOr e1 e2) = do
 --
 
 prepareEnv :: Program -> Err Env
-prepareEnv p = case runStateT (prepareEnv' p) $ Env empty empty empty of
+prepareEnv p = case runStateT (prepareEnv' p) $ Env empty empty empty [] of
     Ok (_,s) -> Ok s
     Bad e    -> Bad e
 

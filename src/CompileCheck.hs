@@ -51,6 +51,15 @@ data Env = Env {
 type Stt a = StateT Env Err a
 
 --
+-- Predefined functions
+--
+
+predefinedFunctions :: FEnv
+predefinedFunctions = fromList [
+    ("printInt",(Void,[Arg Int (Ident "")],Block [])),
+    ("printString",(Void,[Arg Str (Ident "")],Block []))]
+
+--
 -- Auxillary functions
 --
 
@@ -306,7 +315,7 @@ tcFuncs' env (_,(t,args,b)) = runStateT (tcBlock b) $ insertArgs env' args
 --
 
 checkTopDef :: Program -> Err Env
-checkTopDef prog = case runStateT (checkTopDef' prog) $ Env empty empty empty Data.Set.empty 1 Void of
+checkTopDef prog = case runStateT (checkTopDef' prog) $ Env empty empty predefinedFunctions Data.Set.empty 1 Void of
     Ok (_,s)  -> Ok s
     Bad e     -> Bad e 
 

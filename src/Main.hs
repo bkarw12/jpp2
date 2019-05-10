@@ -32,6 +32,9 @@ type ParseFun a = [Token] -> Err a
 -- Printing the result
 --
 
+printOutput :: Env -> IO ()
+printOutput env = mapM_ putStr $ (reverse . output) env
+
 printMap :: (Show a, Show b) => Map a b -> IO ()
 printMap = print . show . toList
 
@@ -46,7 +49,7 @@ printEnv env = do
     
 printRet :: Integer -> IO ()
 printRet n = do
-    putStrLn "Program Execution Successful!"
+    putStrLn "\n\nProgram Execution Successful!"
     putStrLn $ "Main Exit Code: " ++ show n
 
 --
@@ -67,12 +70,14 @@ run p s = let ts = myLexer s in case p ts of
     Ok prog -> do
         putStrLn "Parse Successful!"
         putStrLn $ show prog ++ "\n"
+        putStrLn "Executing Program..."
         runProgram prog
         exitSuccess
 
 runProgram :: Program -> IO ()
 runProgram prog = case runProgram' prog of
     Ok (n,env) -> do
+        printOutput env
         printRet n
         printEnv env -- Debug
     Bad e  -> do

@@ -3,7 +3,7 @@
 int main() {
     // int x = a(x);
     // x++;
-    // printInt(a(x));
+    printInt(5);
     return 0;
 }
 
