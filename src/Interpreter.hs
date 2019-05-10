@@ -291,7 +291,9 @@ interpretExpr (EMul e1 op e2) = do
     (n1,n2) <- exprInt2 e1 e2
     case op of
         Times -> return $ VInt $ n1 * n2
-        Mod   -> return $ VInt $ n1 `mod` n2
+        Mod   -> do
+            if n2 == 0 then liftError $ reModZero (EMul e1 op e2)
+            else return $ VInt $ n1 `mod` n2
         Div   -> do
             if n2 == 0 then liftError $ reDivZero (EMul e1 op e2)
             else return $ VInt $ n1 `div` n2
