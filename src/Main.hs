@@ -37,7 +37,6 @@ printMap = print . show . toList
 
 printEnv :: Env -> IO ()
 printEnv env = do
-    putStrLn "Program Execution Successful!"
     putStrLn "Locations Environment:"
     printMap $ lEnv env
     putStrLn "Variables Environment:"
@@ -45,6 +44,10 @@ printEnv env = do
     putStrLn "Functions Environment:"
     printMap $ fEnv env
     
+printRet :: Integer -> IO ()
+printRet n = do
+    putStrLn "Program Execution Successful!"
+    putStrLn $ "Main Exit Code: " ++ show n
 
 --
 -- Program running functions
@@ -69,10 +72,14 @@ run p s = let ts = myLexer s in case p ts of
 
 runProgram :: Program -> IO ()
 runProgram prog = case runProgram' prog of
-    Ok env -> printEnv env
-    Bad e  -> putStrLn e
+    Ok (n,env) -> do
+        printRet n
+        printEnv env -- Debug
+    Bad e  -> do
+        putStrLn e
+        exitFailure
 
-runProgram' :: Program -> Err Env
+runProgram' :: Program -> Err (Integer, Env)
 runProgram' prog = do
     checkProgram prog
     runInterpreter prog

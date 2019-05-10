@@ -80,6 +80,11 @@ getVVal' var = do
     loc <- getLoc var
     getVVal loc
 
+getVal :: Var -> Stt Val
+getVal var = do
+    (_,val) <- getVVal' var
+    return val
+
 getFun :: Var -> Stt FVal
 getFun var = do
     env <- get
@@ -90,6 +95,15 @@ getFun var = do
 --
 -- Auxillary state functions
 --
+
+declVar :: Type -> Item -> Stt ()
+declVar t (NoInit (Ident var)) = insertVar t var VNone
+declVar t (Init (Ident var) e) = do
+    val <- interpretExp e
+    insertVar t var val
+
+declVars :: Decl -> Stt ()
+declVars (Decl t items) = mapM_ (declVar t) items
 
 insertVar :: Type -> Var -> Val -> Stt ()
 insertVar t var val = do
@@ -102,6 +116,14 @@ insertVar t var val = do
 
 insertArg :: Arg -> Stt ()
 insertArg (Arg t (Ident var)) = insertVar t var VNone
+
+assignVar :: Var -> Val -> Stt ()
+assignVar var val = do
+    loc <- getLoc var
+    (t,_) <- getVVal loc
+    env <- get
+    let vs' = insert loc (t,val) $ vEnv env
+    put env {vEnv = vs'}
 
 exprBool :: Expr -> Stt Boolean
 exprBool e = do
@@ -139,11 +161,12 @@ runFunction (args,b) = do
 -- Interpreter state functions (main operations on lexemes)
 --
 
-interpretEnv :: Stt Val
+interpretEnv :: Stt Integer
 interpretEnv = do
     env <- get
     fval <- getFun "main"
-    runFunction fval
+    (VInt n) <- runFunction fval
+    return n
 
 interpretBlock :: Block -> Stt RetVal
 interpretBlock (Block stmts) = interpretBlock' stmts
@@ -157,7 +180,28 @@ interpretBlock' (stmt:stmts) = do
         _     -> return retval
 
 interpretStmt :: Stmt -> Stt RetVal
-interpretStmt stmt = return NoRet
+interpretStmt Empty = return NoRet
+interpretStmt (BStmt b) = interpretBlock b
+interpretStmt (DeclStmt decl) = do
+    declVars decl
+    return NoRet
+interpretStmt (Ass (Ident var) e) = do
+    val <- interpretExp e
+    assignVar var val
+    return NoRet
+interpretStmt (Incr (Ident var)) = do
+    (VInt n) <- getVal var
+    assignVar var $ VInt $ n + 1
+    return NoRet
+interpretStmt (Decr (Ident var)) = do
+    (VInt n) <- getVal var
+    assignVar var $ VInt $ n - 1
+    return NoRet
+interpretStmt (Ret e) = do
+    val <- interpretExp e
+    return $ IRet val
+interpretStmt VRet = return $ IRet VNone
+interpretStmt _ = return NoRet
 
 interpretExp :: Expr -> Stt Val
 interpretExp (EVar (Ident var)) = do
@@ -220,24 +264,18 @@ prepareTopDef (FnDef _ (Ident var) args b) = do
     env <- get
     let fs' = insert var (args,b) $ fEnv env
     put env {fEnv = fs'}
-prepareTopDef (VDef (Decl t items)) = mapM_ (prepareTopDef' t) items
-
-prepareTopDef' :: Type -> Item -> Stt ()
-prepareTopDef' t (NoInit (Ident var)) = insertVar t var VNone
-prepareTopDef' t (Init (Ident var) e) = do
-    val <- interpretExp e
-    insertVar t var val
+prepareTopDef (VDef decl) = declVars decl
 
 --
 -- Main interpreter functions
 --
 
-runInterpreter :: Program -> Err Env
+runInterpreter :: Program -> Err (Integer, Env)
 runInterpreter prog = do
     env <- prepareEnv prog
     runInterpreter' env
 
-runInterpreter' :: Env -> Err Env
+runInterpreter' :: Env -> Err (Integer, Env)
 runInterpreter' env = case runStateT (interpretEnv) env of
-    Ok (_,s) -> Ok s
     Bad e    -> Bad e
+    ok       -> ok
