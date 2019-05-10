@@ -4,6 +4,7 @@ int main() {
     // int x = a(x);
     // x++;
     printInt(5);
+    printString("\nHello world!");
     return 0;
 }
 
