@@ -99,7 +99,7 @@ getFun var = do
 declVar :: Type -> Item -> Stt ()
 declVar t (NoInit (Ident var)) = insertVar t var VNone
 declVar t (Init (Ident var) e) = do
-    val <- interpretExp e
+    val <- interpretExpr e
     insertVar t var val
 
 declVars :: Decl -> Stt ()
@@ -127,7 +127,7 @@ assignVar var val = do
 
 exprBool :: Expr -> Stt Boolean
 exprBool e = do
-    (VBool b) <- interpretExp e
+    (VBool b) <- interpretExpr e
     return b
 
 exprBool2 :: Expr -> Expr -> Stt (Boolean, Boolean)
@@ -138,7 +138,7 @@ exprBool2 e1 e2 = do
 
 exprInt :: Expr -> Stt Integer
 exprInt e = do
-    (VInt n) <- interpretExp e
+    (VInt n) <- interpretExpr e
     return n
 
 exprInt2 :: Expr -> Expr -> Stt (Integer, Integer)
@@ -186,7 +186,7 @@ interpretStmt (DeclStmt decl) = do
     declVars decl
     return NoRet
 interpretStmt (Ass (Ident var) e) = do
-    val <- interpretExp e
+    val <- interpretExpr e
     assignVar var val
     return NoRet
 interpretStmt (Incr (Ident var)) = do
@@ -198,27 +198,32 @@ interpretStmt (Decr (Ident var)) = do
     assignVar var $ VInt $ n - 1
     return NoRet
 interpretStmt (Ret e) = do
-    val <- interpretExp e
+    val <- interpretExpr e
     return $ IRet val
 interpretStmt VRet = return $ IRet VNone
+interpretStmt (Cond e stmt) = interpretStmt (CondElse e stmt Empty)
+interpretStmt (CondElse e stmt1 stmt2) = do
+    (VBool b) <- interpretExpr e
+    if b then interpretStmt stmt1
+    else interpretStmt stmt2
 interpretStmt _ = return NoRet
 
-interpretExp :: Expr -> Stt Val
-interpretExp (EVar (Ident var)) = do
+interpretExpr :: Expr -> Stt Val
+interpretExpr (EVar (Ident var)) = do
     (_,val) <- getVVal' var
     return val
-interpretExp (ELitInt n) = return $ VInt n
-interpretExp ELitTrue = return $ VBool True
-interpretExp ELitFalse = return $ VBool False
-interpretExp (EApp (Ident var) es) = return VNone -- TODO
-interpretExp (EString s) = return $ VStr s
-interpretExp (Neg e) = do
+interpretExpr (ELitInt n) = return $ VInt n
+interpretExpr ELitTrue = return $ VBool True
+interpretExpr ELitFalse = return $ VBool False
+interpretExpr (EApp (Ident var) es) = return VNone -- TODO
+interpretExpr (EString s) = return $ VStr s
+interpretExpr (Neg e) = do
     n <- exprInt e
     return $ VInt n
-interpretExp (Not e) = do
+interpretExpr (Not e) = do
     b <- exprBool e
     return $ VBool $ not b
-interpretExp (EMul e1 op e2) = do
+interpretExpr (EMul e1 op e2) = do
     (n1,n2) <- exprInt2 e1 e2
     case op of
         Times -> return $ VInt $ n1 * n2
@@ -226,12 +231,12 @@ interpretExp (EMul e1 op e2) = do
         Div   -> do
             if n2 == 0 then liftError $ reDivZero (EMul e1 op e2)
             else return $ VInt $ n1 `div` n2
-interpretExp (EAdd e1 op e2) = do
+interpretExpr (EAdd e1 op e2) = do
     (n1,n2) <- exprInt2 e1 e2
     case op of
         Plus  -> return $ VInt $ n1 + n2
         Minus -> return $ VInt $ n1 - n2
-interpretExp (ERel e1 op e2) = do
+interpretExpr (ERel e1 op e2) = do
     (n1,n2) <- exprInt2 e1 e2
     case op of
         LTH -> return $ VBool $ n1 < n2
@@ -240,10 +245,10 @@ interpretExp (ERel e1 op e2) = do
         GE  -> return $ VBool $ n1 >= n2 
         EQU -> return $ VBool $ n1 == n2
         NE  -> return $ VBool $ n1 /= n2
-interpretExp (EAnd e1 e2) = do
+interpretExpr (EAnd e1 e2) = do
     (b1,b2) <- exprBool2 e1 e2
     return $ VBool $ b1 && b2
-interpretExp (EOr e1 e2) = do
+interpretExpr (EOr e1 e2) = do
     (b1,b2) <- exprBool2 e1 e2
     return $ VBool $ b1 || b2
 
