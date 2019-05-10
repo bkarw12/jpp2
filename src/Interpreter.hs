@@ -29,6 +29,7 @@ type Loc = Integer
 data Val = VInt Integer | VBool Boolean | VStr String | VNone
     deriving (Show)
 data RetVal = IRet Val | NoRet
+data LoopVal = LNone | LBreak | LCont
 type VVal = (Type, Val)
 type FVal = ([Arg], Block)
 
@@ -179,8 +180,36 @@ interpretBlock' (stmt:stmts) = do
         NoRet -> interpretBlock' stmts
         _     -> return retval
 
+interpretLoopBlock :: [Stmt] -> Stt (RetVal, LoopVal)
+interpretLoopBlock [] = return (NoRet,LNone)
+interpretLoopBlock (stmt:stmts) = do
+    vals <- interpretLoopStmt stmt
+    case vals of
+        (NoRet,LNone) -> interpretLoopBlock stmts
+        _             -> return vals
+
+interpretLoopStmt :: Stmt -> Stt (RetVal, LoopVal)
+interpretLoopStmt Break = return (NoRet,LBreak)
+interpretLoopStmt Cont = return (NoRet,LCont)
+interpretLoopStmt (BStmt (Block stmts)) = interpretLoopBlock stmts
+interpretLoopStmt stmt = do
+    retval <- interpretStmt stmt
+    return (retval, LNone)
+
+interpretLoop :: Expr -> Stmt -> Stmt -> Stt RetVal
+interpretLoop e stmt endStmt = do
+    (VBool b) <- interpretExpr e
+    if b then do
+        vals <- interpretLoopStmt stmt
+        case vals of
+            (IRet ret,_) -> return $ IRet ret
+            (_,LBreak)   -> return NoRet
+            _            -> do
+                interpretStmt endStmt
+                interpretLoop e stmt endStmt
+    else return NoRet
+
 interpretStmt :: Stmt -> Stt RetVal
-interpretStmt Empty = return NoRet
 interpretStmt (BStmt b) = interpretBlock b
 interpretStmt (DeclStmt decl) = do
     declVars decl
@@ -206,7 +235,15 @@ interpretStmt (CondElse e stmt1 stmt2) = do
     (VBool b) <- interpretExpr e
     if b then interpretStmt stmt1
     else interpretStmt stmt2
-interpretStmt _ = return NoRet
+interpretStmt (For (Ident var) e1 e2 stmt) = do
+    (n1,n2) <- exprInt2 e1 e2
+    assignVar var $ VInt n1
+    interpretLoop (ERel (EVar (Ident var)) LE (ELitInt n2)) stmt (Incr (Ident var))
+interpretStmt (While e stmt) = interpretLoop e stmt Empty
+interpretStmt (SExp e) = do
+    interpretExpr e
+    return NoRet
+interpretStmt _ = return NoRet -- break/continue is interpreted in interpretLoop functions
 
 interpretExpr :: Expr -> Stt Val
 interpretExpr (EVar (Ident var)) = do
