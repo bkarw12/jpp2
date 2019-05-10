@@ -115,8 +115,8 @@ insertVar t var val = do
         vs' = insert loc (t,val) vs
     put env {lEnv = ls', vEnv = vs'}
 
-insertArg :: Arg -> Stt ()
-insertArg (Arg t (Ident var)) = insertVar t var VNone
+insertArg :: (Arg, Val) -> Stt ()
+insertArg (Arg t (Ident var),val) = insertVar t var val
 
 assignVar :: Var -> Val -> Stt ()
 assignVar var val = do
@@ -148,11 +148,12 @@ exprInt2 e1 e2 = do
     n2 <- exprInt e2
     return (n1,n2)
 
-runFunction :: FVal -> Stt Val
-runFunction (args,b) = do
+runFunction :: Var -> [Val] -> Stt Val
+runFunction var vals = do
+    (args,b) <- getFun var
     env <- get
     let ls = lEnv env
-    mapM_ insertArg args
+    mapM_ insertArg $ zip args vals
     ret <- interpretBlock b
     env' <- get
     put env' {lEnv = ls}
@@ -164,9 +165,7 @@ runFunction (args,b) = do
 
 interpretEnv :: Stt Integer
 interpretEnv = do
-    env <- get
-    fval <- getFun "main"
-    (VInt n) <- runFunction fval
+    (VInt n) <- runFunction "main" []
     return n
 
 interpretBlock :: Block -> Stt RetVal
@@ -252,7 +251,9 @@ interpretExpr (EVar (Ident var)) = do
 interpretExpr (ELitInt n) = return $ VInt n
 interpretExpr ELitTrue = return $ VBool True
 interpretExpr ELitFalse = return $ VBool False
-interpretExpr (EApp (Ident var) es) = return VNone -- TODO
+interpretExpr (EApp (Ident var) es) = do
+    vals <- mapM interpretExpr es
+    runFunction var vals
 interpretExpr (EString s) = return $ VStr s
 interpretExpr (Neg e) = do
     n <- exprInt e
