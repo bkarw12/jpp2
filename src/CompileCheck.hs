@@ -11,9 +11,9 @@ module CompileCheck where
 --
 
 import Data.Map
-import qualified Data.Set
 import Control.Monad.State
 import Control.Monad.Reader
+import qualified Data.Bool
 
 import AbsGram
 import Errors
@@ -24,26 +24,23 @@ import ErrM
 -- Used data types
 --
 
-type Set = Data.Set.Set
-
 type Var = String
+type Boolean = Data.Bool.Bool
 type Loc = Integer
 data Val = VInt | VBool | VStr | VNone
     deriving (Eq)
-type VVal = (Type, Val, Integer)
+type VVal = (Type, Val, Integer, Boolean)
 type FVal = (Type, [Arg], Block)
 
 type LEnv = Map Var Loc
 type VEnv = Map Loc VVal
 type FEnv = Map Var FVal
-type REnv = Set Var
 
 -- the environment created to manage type checks
 data Env = Env {
     lEnv :: LEnv,       -- location env,            var -> loc
     vEnv :: VEnv,       -- variables state env,     loc -> value
     fEnv :: FEnv,       -- functions env,           var -> fvalue
-    rEnv :: REnv,       -- read-only var env,       set (var),      used to store read-only variables info
     depth :: Integer,   -- variable decl. env,      int,            used to check for redeclarations in one block
     ret :: Type         -- expected return type,    type,           used to check if the return expr type matches
 }
@@ -107,7 +104,7 @@ insertArg env (Arg t (Ident var)) = env {lEnv = ls', vEnv = vs'}
     where   vs  = vEnv env
             loc = newLoc vs
             ls' = insert var loc $ lEnv env
-            vs' = insert loc (t,typeToVal t,depth env) vs
+            vs' = insert loc (t,typeToVal t,depth env,False) vs
 
 checkInsertVar :: Type -> Item -> Stt ()
 checkInsertVar Void _ = liftError ceVarVoid
@@ -130,11 +127,11 @@ checkInsertVar' t val var = do
     case Data.Map.lookup var ls of
         Nothing  -> return ()
         Just oldLoc -> do
-            (_,_,m) <- getVVal oldLoc
+            (_,_,m,_) <- getVVal oldLoc
             if n <= m then liftError $ ceVarRedecl var
             else return ()
     let ls' = insert var loc ls
-        vs' = insert loc (t,val,n) vs
+        vs' = insert loc (t,val,n,False) vs
     put env {lEnv = ls', vEnv = vs'}
 
 checkArgs :: [Arg] -> [Expr] -> String -> String -> Stt ()
@@ -147,7 +144,7 @@ checkArgs' s ((Arg t _), e) = tcExpr' t e s
 
 checkInit :: Expr -> Stt ()
 checkInit (EVar (Ident var)) = do
-    (_,val,_) <- getVVal' var
+    (_,val,_,_) <- getVVal' var
     if val == VNone then liftError $ ceVarNoInit var
     else return ()
 checkInit (Neg e) = checkInit e
@@ -165,14 +162,22 @@ initVar :: Var -> Stt ()
 initVar var = do
     env <- get
     loc <- getLoc var
-    (t,_,num) <- getVVal loc
-    let vs' = insert loc (t,typeToVal t,num) $ vEnv env
+    (t,_,num,ro) <- getVVal loc
+    let vs' = insert loc (t,typeToVal t,num,ro) $ vEnv env
+    put env {vEnv = vs'}
+
+setReadOnly :: Boolean -> Var -> Stt ()
+setReadOnly ro var = do
+    env <- get
+    loc <- getLoc var
+    (t,val,num,_) <- getVVal loc
+    let vs' = insert loc (t,val,num,ro) $ vEnv env
     put env {vEnv = vs'}
 
 checkReadOnly :: Var -> String -> Stt ()
 checkReadOnly var s = do
-    env <- get
-    if Data.Set.member var $ rEnv env then liftError s
+    (_,_,_,ro) <- getVVal' var
+    if ro then liftError s
     else return ()
 
 --
@@ -211,10 +216,9 @@ tcStmt (For id e1 e2 stmt) = do
     tcExpr' Int e2 $ ceTypeFor2 e2
     let (Ident var) = id
     initVar var
-    env <- get
-    let rs' = Data.Set.insert var $ rEnv env
-    put env {rEnv = rs'}
+    setReadOnly True var
     tcStmt stmt
+    setReadOnly False var
 tcStmt (While e stmt) = do
     tcExpr' Bool e $ ceTypeWhile e
     tcStmt stmt
@@ -232,7 +236,7 @@ tcStmt _ = return ()
 
 tcExpr :: Expr -> Stt Type
 tcExpr (EVar (Ident var)) = do
-    (t,_,_) <- getVVal' var
+    (t,_,_,_) <- getVVal' var
     return t
 tcExpr (ELitInt _) = return Int
 tcExpr ELitTrue = return Bool
@@ -298,9 +302,9 @@ tcVars env = mapM_ (tcVars' $ lEnv env) $ toList $ vEnv env
 
 tcVars' :: LEnv -> (Loc, VVal) -> Err ()
 tcVars' ls (loc,vval) = case vval of
-    (Int, VInt,_)   -> Ok ()
-    (Bool, VBool,_) -> Ok ()
-    (Str, VStr,_)   -> Ok ()
+    (Int, VInt,_,_)   -> Ok ()
+    (Bool, VBool,_,_) -> Ok ()
+    (Str, VStr,_,_)   -> Ok ()
     _               -> Bad $ ceVarGlobalType $ keyFromValue ls loc
 
 tcFuncs :: Env -> Err ()
@@ -315,7 +319,7 @@ tcFuncs' env (_,(t,args,b)) = runStateT (tcBlock b) $ insertArgs env' args
 --
 
 checkTopDef :: Program -> Err Env
-checkTopDef prog = case runStateT (checkTopDef' prog) $ Env empty empty predefinedFunctions Data.Set.empty 1 Void of
+checkTopDef prog = case runStateT (checkTopDef' prog) $ Env empty empty predefinedFunctions 1 Void of
     Ok (_,s)  -> Ok s
     Bad e     -> Bad e 
 
@@ -346,7 +350,7 @@ checkTopDefV' val t var = do
         let vs  = vEnv env
             loc = newLoc vs
             ls' = insert var loc ls
-            vs' = insert loc (t,val,0) vs
+            vs' = insert loc (t,val,0,False) vs
         in put env {lEnv = ls', vEnv = vs'}
     else liftError $ ceVarGlobalRedecl var
 
