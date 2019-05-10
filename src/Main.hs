@@ -28,9 +28,14 @@ import ErrM
 
 type ParseFun a = [Token] -> Err a
 
+type Verbosity = Int
+
 --
 -- Printing the result
 --
+
+putStrV :: Verbosity -> String -> IO ()
+putStrV v s = if v >= 1 then putStrLn s else return ()
 
 printOutput :: Env -> IO ()
 printOutput env = mapM_ putStr $ (reverse . output) env
@@ -38,51 +43,66 @@ printOutput env = mapM_ putStr $ (reverse . output) env
 printMap :: (Show a, Show b) => Map a b -> IO ()
 printMap = print . show . toList
 
-printEnv :: Env -> IO ()
-printEnv env = do
-    putStrLn "Locations Environment:"
-    printMap $ lEnv env
-    putStrLn "Variables Environment:"
-    printMap $ vEnv env
-    putStrLn "Functions Environment:"
-    printMap $ fEnv env
+printEnv :: Verbosity -> Env -> IO ()
+printEnv v env = do
+    if v >= 1 then do
+        putStrLn "\n\nLocations Environment:"
+        printMap $ lEnv env
+        putStrLn "Variables Environment:"
+        printMap $ vEnv env
+        putStrLn "Functions Environment:"
+        printMap $ fEnv env
+    else return ()
     
 printRet :: Integer -> IO ()
-printRet n = do
-    putStrLn "\n\nProgram Execution Successful!"
-    putStrLn $ "Main Exit Code: " ++ show n
+printRet n = putStrLn $ "\n\n\"int main()\" Exit Code: " ++ show n
 
 --
 -- Program running functions
 --
 
-runFile :: ParseFun Program -> FilePath -> IO ()
-runFile p f = putStrLn (f ++ "\n") >> readFile f >>= run p
+runFile :: Verbosity -> ParseFun Program -> FilePath -> IO ()
+runFile v p f = putStrLn ("Filepath: " ++ f ++ "\n") >> readFile f >>= run v p
 
-run :: ParseFun Program -> String -> IO ()
-run p s = let ts = myLexer s in case p ts of
-    Bad s -> do
-        putStrLn "Parse Failed..."
-        putStrLn "Tokens:"
-        putStrLn $ show ts
-        putStrLn $ show s
-        exitFailure
-    Ok prog -> do
-        putStrLn "Parse Successful!"
-        putStrLn $ show prog ++ "\n"
-        putStrLn "Executing Program..."
-        runProgram prog
-        exitSuccess
+run :: Verbosity -> ParseFun Program -> String -> IO ()
+run v p s = do 
+    putStr "Parse..."
+    let ts = myLexer s
+    case p ts of
+        Bad s -> do
+            putStrLn "Failed!"
+            putStrV v "Tokens:"
+            putStrV v $ show ts
+            putStrLn $ "Error: " ++ s
+            exitFailure
+        Ok prog -> do
+            putStrLn "Successful!"
+            putStrV v $ show prog ++ "\n"
+            runProgram v prog
+            exitSuccess
 
-runProgram :: Program -> IO ()
-runProgram prog = case runProgram' prog of
-    Ok (n,env) -> do
-        printOutput env
-        printRet n
-        printEnv env -- Debug
-    Bad e  -> do
-        putStrLn e
-        exitFailure
+runProgram :: Verbosity -> Program -> IO ()
+runProgram v prog = do
+    putStr "Program Check..."
+    case checkProgram prog of
+        Bad e -> do
+            putStrLn "Failed!\n"
+            putStrLn e
+            exitFailure
+        Ok _  -> do
+            putStrLn "Successful!"
+            putStr "Program Execution..."
+            case runInterpreter prog of
+                Ok (n,env) -> do
+                    putStrLn "Successful!\n"
+                    putStrLn "Output:"
+                    printOutput env
+                    printRet n
+                    printEnv v env
+                Bad e  -> do
+                    putStrLn "Failed!\n"
+                    putStrLn e
+                    exitFailure
 
 runProgram' :: Program -> Err (Integer, Env)
 runProgram' prog = do
@@ -97,5 +117,7 @@ main :: IO ()
 main = do
     args <- getArgs
     case args of
-        [] -> getContents >>= run pProgram
-        fs -> mapM_ (runFile pProgram) fs
+        []      -> getContents >>= run 0 pProgram
+        "-v":[] -> getContents >>= run 1 pProgram
+        "-v":fs -> mapM_ (runFile 1 pProgram) fs
+        fs      -> mapM_ (runFile 0 pProgram) fs

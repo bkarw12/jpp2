@@ -1,5 +1,5 @@
 Błędy kompilacji:
-- zadeklarowanie funkcji o nazwie takiej samej jak wbudowane
+-
 
 Wykonanie programu:
 - dodać pętlę for iterującą malejąco?
@@ -9,8 +9,9 @@ Refactor:
 - znaleźć sposób, aby sprawdzanie globalnych zmiennych działało tak jak sprawdzanie zwykłych?
 - usunąć rEnv i wrzucić info o read-only do vEnv?
 - sprawdzić kolejność funkcji w każdej sekcji w każdym pliku (od najważniejszej do najmniej albo na odwrót)
+- ładniej napisać funkcje w Main.hs
 
 Inne:
+- wypisywanie outputu przed runtime errorem
 - dodać skrypt test.sh odpalający programy z funkcją verbose tylko na errory
 - dodać skrypt zip.sh pakujący paczkę z rozwiązaniem
-- pozmieniać wypisywane komunikaty (np. poprawne/niepoprawne parsowanie)
