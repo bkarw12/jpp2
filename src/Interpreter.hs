@@ -16,6 +16,7 @@ import qualified Data.Bool
 
 import AbsGram
 import Errors
+import Utils
 
 import ErrM
 
@@ -23,9 +24,6 @@ import ErrM
 -- Used data types
 --
 
-type Var = String
-type Boolean = Data.Bool.Bool
-type Loc = Integer
 data Val = VInt Integer | VBool Boolean | VStr String | VNone
     deriving (Show)
 data RetVal = IRet Val | NoRet
@@ -64,10 +62,13 @@ liftRuntimeError s = do
     env <- get
     lift $ Bad $ (concat . reverse $ output env) ++ "\n\nError: " ++ s
 
-newLoc :: Map Loc a -> Loc
-newLoc m 
-    | Data.Map.null m    = 0
-    | otherwise = (fst $ findMax m) + 1
+retvalToVal :: RetVal -> Val
+retvalToVal NoRet = VNone
+retvalToVal (IRet val) = val
+
+--
+-- Auxillary state functions
+--
 
 getLoc :: Var -> Stt Loc
 getLoc var = do
@@ -75,10 +76,6 @@ getLoc var = do
     case Data.Map.lookup var $ lEnv env of
         Nothing  -> liftRuntimeError $ ceVarUndeclared var
         Just loc -> return loc
-
-retvalToVal :: RetVal -> Val
-retvalToVal NoRet = VNone
-retvalToVal (IRet val) = val
 
 getVVal :: Loc -> Stt VVal
 getVVal loc = do
@@ -103,16 +100,6 @@ getFun var = do
     case Data.Map.lookup var $ fEnv env of
         Nothing   -> lift $ Bad $ "Unknown error: bad function name?"
         Just fval -> return fval
-
-addOutput :: String -> Stt ()
-addOutput s = do
-    env <- get
-    let out' = s:(output env)
-    put env {output = out'}
-
---
--- Auxillary state functions
---
 
 declVar :: Type -> Item -> Stt ()
 declVar t (NoInit (Ident var)) = insertVar t var VNone
@@ -187,6 +174,12 @@ runPredef "printString" [VStr s] = do
     return VNone
 runPredef _ _ = lift $ Bad "Unknown error: wrong predefined function?"
 
+addOutput :: String -> Stt ()
+addOutput s = do
+    env <- get
+    let out' = s:(output env)
+    put env {output = out'}
+
 --
 -- Interpreter state functions (main operations on lexemes)
 --
@@ -207,6 +200,19 @@ interpretBlock' (stmt:stmts) = do
         NoRet -> interpretBlock' stmts
         _     -> return retval
 
+interpretLoop :: Expr -> Stmt -> Stmt -> Stt RetVal
+interpretLoop e stmt endStmt = do
+    (VBool b) <- interpretExpr e
+    if b then do
+        vals <- interpretLoopStmt stmt
+        case vals of
+            (IRet ret,_) -> return $ IRet ret
+            (_,LBreak)   -> return NoRet
+            _            -> do
+                interpretStmt endStmt
+                interpretLoop e stmt endStmt
+    else return NoRet
+
 interpretLoopBlock :: [Stmt] -> Stt (RetVal, LoopVal)
 interpretLoopBlock [] = return (NoRet,LNone)
 interpretLoopBlock (stmt:stmts) = do
@@ -222,19 +228,6 @@ interpretLoopStmt (BStmt (Block stmts)) = interpretLoopBlock stmts
 interpretLoopStmt stmt = do
     retval <- interpretStmt stmt
     return (retval, LNone)
-
-interpretLoop :: Expr -> Stmt -> Stmt -> Stt RetVal
-interpretLoop e stmt endStmt = do
-    (VBool b) <- interpretExpr e
-    if b then do
-        vals <- interpretLoopStmt stmt
-        case vals of
-            (IRet ret,_) -> return $ IRet ret
-            (_,LBreak)   -> return NoRet
-            _            -> do
-                interpretStmt endStmt
-                interpretLoop e stmt endStmt
-    else return NoRet
 
 interpretStmt :: Stmt -> Stt RetVal
 interpretStmt (BStmt b) = interpretBlock b
