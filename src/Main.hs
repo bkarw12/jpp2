@@ -17,8 +17,6 @@ import System.Exit ( exitFailure, exitSuccess )
 
 import LexGram
 import ParGram
-import SkelGram
-import PrintGram
 import AbsGram
 
 import CompileCheck ( checkProgram )

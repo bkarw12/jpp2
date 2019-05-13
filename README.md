@@ -9,6 +9,6 @@
 
 ##### Kompilacja interpretera #####
 1. patrz - _Generowanie plików gramatyki i kompilacja parsera/leksera_
-1. `ghc --make Main`
+1. `ghc -O --make Main`
     1. (Można zamiast tego) `sh make.sh`
 1. `./Main(.exe) <FILENAME>`
