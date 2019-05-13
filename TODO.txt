@@ -10,3 +10,5 @@ Refactor:
 Inne:
 - dodać skrypt test.sh odpalający programy z funkcją verbose tylko na errory
 - dodać skrypt zip.sh pakujący paczkę z rozwiązaniem
+- zaktualizować deklarację języka
+- ładniejsze README
