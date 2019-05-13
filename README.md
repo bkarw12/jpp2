@@ -1,11 +1,14 @@
-JPP - zadanie 2
-Bartłomiej Karwowski
+# JPP - zadanie 2 #
+### Bartłomiej Karwowski ###
 
-A) Generowanie plików gramatyki:
-1. cd grammar
-2. bnfc -m gram.cf
+##### Generowanie plików gramatyki i kompilacja parsera/leksera: #####
+1. `cd grammar`
+1. `bnfc -m ../grammar/gram.cf`
+1. `make`
+    1. (Jeśli wystąpi błąd kompilacji) Dodać `import Data.Char (ord)` do `LexGram.hs`
 
-B) Kompilacja plików testujących parser/lekser:
-1. punkt A)
-2. make
-3. (Jeśli wystąpi błąd kompilacji) dodać "import Data.Char (ord) do LexGram.hs
+##### Kompilacja interpretera #####
+1. patrz - _Generowanie plików gramatyki i kompilacja parsera/leksera_
+1. `ghc --make Main`
+    1. (Można zamiast tego) `sh make.sh`
+1. `./Main(.exe) <FILENAME>`
