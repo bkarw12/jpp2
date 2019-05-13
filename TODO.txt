@@ -3,11 +3,22 @@ Błędy kompilacji:
 
 Wykonanie programu:
 - dodać pętlę for iterującą malejąco?
+- dodać funkcję error()
 
 Refactor:
 -
 
+Deklaracja:
+- ogólny opis programu - lista funkcji, musi być bezparametrowy int main
+- zaktualizować predefiniowane funkcje
+- reguły redeklaracji (takie jak w C, dopuszczamy taką samą nazwę funkcji i zmienych)
+    i przesłaniania identyfikatorów
+- reguły definiowania zmiennych globalnych (tylko stałe wyrażenia)
+- zaktualizować opis napisów (brak konkatenacji)
+- opis obsługi błędów wykonania
+
 Inne:
+- nowe testy (redeklaracja, test do każdej specyficznej reguły języka)
 - dodać skrypt test.sh odpalający programy z funkcją verbose tylko na errory
 - dodać skrypt zip.sh pakujący paczkę z rozwiązaniem
 - zaktualizować deklarację języka
