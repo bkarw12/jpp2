@@ -96,15 +96,19 @@ typeToVal Bool = VBool
 typeToVal Str = VStr
 typeToVal _ = VNone
 
-insertArgs :: Env -> [Arg] -> Env
-insertArgs env args = Prelude.foldl insertArg env args
+insertVar :: Var -> VVal -> Stt ()
+insertVar var vval = do
+    env <- get
+    let vs = vEnv env
+        loc = newLoc vs
+        ls' = insert var loc $ lEnv env
+        vs' = insert loc vval vs
+    put env {lEnv = ls', vEnv = vs'}
 
-insertArg :: Env -> Arg -> Env
-insertArg env (Arg t (Ident var)) = env {lEnv = ls', vEnv = vs'}
-    where   vs  = vEnv env
-            loc = newLoc vs
-            ls' = insert var loc $ lEnv env
-            vs' = insert loc (t,typeToVal t,depth env,False) vs
+insertArg :: Arg -> Stt ()
+insertArg (Arg t (Ident var)) = do
+    env <- get
+    insertVar var (t,typeToVal t,depth env,False)
 
 checkInsertVar :: Type -> Item -> Stt ()
 checkInsertVar Void _ = liftError ceVarVoid
@@ -120,19 +124,14 @@ checkInsertVar' :: Type -> Val -> Var -> Stt ()
 checkInsertVar' t val var = do
     checkReadOnly var $ ceVarRedeclRead var
     env <- get
-    let vs  = vEnv env
-        ls  = lEnv env
-        n   = depth env
-        loc = newLoc vs
-    case Data.Map.lookup var ls of
+    let n = depth env
+    case Data.Map.lookup var $ lEnv env of
         Nothing  -> return ()
         Just oldLoc -> do
             (_,_,m,_) <- getVVal oldLoc
             if n <= m then liftError $ ceVarRedecl var
             else return ()
-    let ls' = insert var loc ls
-        vs' = insert loc (t,val,n,False) vs
-    put env {lEnv = ls', vEnv = vs'}
+    insertVar var (t,val,n,False)
 
 checkArgs :: [Arg] -> [Expr] -> String -> String -> Stt ()
 checkArgs args es s1 s2
@@ -168,11 +167,8 @@ initVar var = do
 
 setReadOnly :: Boolean -> Var -> Stt ()
 setReadOnly ro var = do
-    env <- get
-    loc <- getLoc var
-    (t,val,num,_) <- getVVal loc
-    let vs' = insert loc (t,val,num,ro) $ vEnv env
-    put env {vEnv = vs'}
+    (t,val,num,_) <- getVVal' var
+    insertVar var (t,val,num,ro)
 
 checkReadOnly :: Var -> String -> Stt ()
 checkReadOnly var s = do
@@ -183,6 +179,11 @@ checkReadOnly var s = do
 --
 -- Raw type checking
 --
+
+tcFunc :: Block -> [Arg] -> Stt ()
+tcFunc b args = do
+    mapM_ insertArg args
+    tcBlock b
 
 tcBlock :: Block -> Stt ()
 tcBlock (Block stmts) = mapM_ tcStmt stmts
@@ -311,8 +312,7 @@ tcFuncs :: Env -> Err ()
 tcFuncs env = mapM_ (tcFuncs' env) $ toList $ fEnv env
 
 tcFuncs' :: Env -> (Var, FVal) -> Err ((), Env)
-tcFuncs' env (_,(t,args,b)) = runStateT (tcBlock b) $ insertArgs env' args
-    where env' = env {ret = t}
+tcFuncs' env (_,(t,args,b)) = runStateT (tcFunc b args) $ env {ret = t}
 
 --
 -- Checking global declarations
@@ -346,12 +346,7 @@ checkTopDefV' :: Val -> Type -> Var -> Stt ()
 checkTopDefV' val t var = do
     env <- get
     let ls = lEnv env
-    if notMember var ls then
-        let vs  = vEnv env
-            loc = newLoc vs
-            ls' = insert var loc ls
-            vs' = insert loc (t,val,0,False) vs
-        in put env {lEnv = ls', vEnv = vs'}
+    if notMember var ls then insertVar var (t,val,0,False)
     else liftError $ ceVarGlobalRedecl var
 
 calcTopDefVal :: Expr -> Stt Val
