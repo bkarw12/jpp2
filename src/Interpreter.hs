@@ -51,7 +51,8 @@ type Stt a = Stt' Env a
 predefinedFunctions :: [Var]
 predefinedFunctions = [
     "printInt",
-    "printString"]
+    "printString",
+    "error"]
 
 --
 -- Auxillary functions
@@ -172,6 +173,7 @@ runPredef "printInt" [VInt n] = do
 runPredef "printString" [VStr s] = do
     addOutput s
     return VNone
+runPredef "error" [] = liftRuntimeError reError
 runPredef _ _ = lift $ Bad "Unknown error: wrong predefined function?"
 
 addOutput :: String -> Stt ()

@@ -52,7 +52,8 @@ type Stt a = Stt' Env a
 predefinedFunctions :: FEnv
 predefinedFunctions = fromList [
     ("printInt",(Void,[Arg Int (Ident "")],Block [])),
-    ("printString",(Void,[Arg Str (Ident "")],Block []))]
+    ("printString",(Void,[Arg Str (Ident "")],Block [])),
+    ("error",(Void,[],Block []))]
 
 --
 -- Auxillary functions

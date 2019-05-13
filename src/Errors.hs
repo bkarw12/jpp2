@@ -58,5 +58,7 @@ ceNonVoidEnd var = "reached end of non-void function: " ++ var
 -- Runtime errors
 --
 
+reError = "runtime error"
+
 reDivZero e = "division by zero in expression: " ++ printTree e
 reModZero e = "modulo zero in expression: " ++ printTree e

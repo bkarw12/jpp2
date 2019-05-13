@@ -3,7 +3,6 @@ Błędy kompilacji:
 
 Wykonanie programu:
 - dodać pętlę for iterującą malejąco?
-- dodać funkcję error()
 
 Refactor:
 -
@@ -16,6 +15,7 @@ Deklaracja:
 - reguły definiowania zmiennych globalnych (tylko stałe wyrażenia)
 - zaktualizować opis napisów (brak konkatenacji)
 - opis obsługi błędów wykonania
+- code snippety tam gdzie występują kawałki kodu?
 
 Inne:
 - nowe testy (redeklaracja, test do każdej specyficznej reguły języka)
