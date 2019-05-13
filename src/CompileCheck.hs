@@ -30,9 +30,9 @@ data Val = VInt | VBool | VStr | VNone
 type VVal = (Type, Val, Integer, Boolean)
 type FVal = (Type, [Arg], Block)
 
-type LEnv = Map Var Loc
-type VEnv = Map Loc VVal
-type FEnv = Map Var FVal
+type LEnv = LEnv'
+type VEnv = VEnv' VVal
+type FEnv = FEnv' FVal
 
 -- the environment created to manage type checks
 data Env = Env {
@@ -43,7 +43,7 @@ data Env = Env {
     ret :: Type         -- expected return type,    type,           used to check if the return expr type matches
 }
 
-type Stt a = StateT Env Err a
+type Stt a = Stt' Env a
 
 --
 -- Predefined functions

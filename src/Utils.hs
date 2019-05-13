@@ -11,6 +11,9 @@ module Utils where
 --
 
 import Data.Map
+import Control.Monad.State
+
+import ErrM
 
 --
 -- Data Types
@@ -19,6 +22,12 @@ import Data.Map
 type Var = String
 type Boolean = Bool
 type Loc = Integer
+
+type LEnv' = Map Var Loc
+type VEnv' vval = Map Loc vval
+type FEnv' fval = Map Var fval
+
+type Stt' env a = StateT env Err a
 
 --
 -- Functions

@@ -31,9 +31,9 @@ data LoopVal = LNone | LBreak | LCont
 type VVal = (Type, Val)
 type FVal = ([Arg], Block)
 
-type LEnv = Map Var Loc
-type VEnv = Map Loc VVal
-type FEnv = Map Var FVal
+type LEnv = LEnv'
+type VEnv = VEnv' VVal
+type FEnv = FEnv' FVal
 
 -- the interpreter environment
 data Env = Env {
@@ -43,7 +43,7 @@ data Env = Env {
     output :: [String]  -- list of things to stdout     [string]
 }
 
-type Stt a = StateT Env Err a
+type Stt a = Stt' Env a
 
 --
 -- Predefined functions
