@@ -59,8 +59,10 @@ predefinedFunctions = [
 -- Auxillary functions
 --
 
-liftError :: String -> Stt a
-liftError s = lift $ Bad $ "Error: " ++ s
+liftRuntimeError :: String -> Stt a
+liftRuntimeError s = do
+    env <- get
+    lift $ Bad $ (concat . reverse $ output env) ++ "\n\nError: " ++ s
 
 newLoc :: Map Loc a -> Loc
 newLoc m 
@@ -71,7 +73,7 @@ getLoc :: Var -> Stt Loc
 getLoc var = do
     env <- get
     case Data.Map.lookup var $ lEnv env of
-        Nothing  -> liftError $ ceVarUndeclared var
+        Nothing  -> liftRuntimeError $ ceVarUndeclared var
         Just loc -> return loc
 
 retvalToVal :: RetVal -> Val
@@ -292,10 +294,10 @@ interpretExpr (EMul e1 op e2) = do
     case op of
         Times -> return $ VInt $ n1 * n2
         Mod   -> do
-            if n2 == 0 then liftError $ reModZero (EMul e1 op e2)
+            if n2 == 0 then liftRuntimeError $ reModZero (EMul e1 op e2)
             else return $ VInt $ n1 `mod` n2
         Div   -> do
-            if n2 == 0 then liftError $ reDivZero (EMul e1 op e2)
+            if n2 == 0 then liftRuntimeError $ reDivZero (EMul e1 op e2)
             else return $ VInt $ n1 `div` n2
 interpretExpr (EAdd e1 op e2) = do
     (n1,n2) <- exprInt2 e1 e2

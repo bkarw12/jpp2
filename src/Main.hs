@@ -101,13 +101,10 @@ runProgram v prog = do
                     printEnv v env
                 Bad e  -> do
                     putStrLn "Failed!\n"
+                    putStrLn "Output:"
                     putStrLn e
                     exitFailure
 
-runProgram' :: Program -> Err (Integer, Env)
-runProgram' prog = do
-    checkProgram prog
-    runInterpreter prog
 
 --
 -- Main
