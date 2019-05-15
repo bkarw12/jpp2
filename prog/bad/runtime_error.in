@@ -1,0 +1,8 @@
+// runtime error z wykorzystaniem funkcji error
+
+int main() {
+    printString("test\n");
+    error();
+
+    return 0;
+}

@@ -1,0 +1,12 @@
+// dzielenie przez zero
+
+int main() {
+    int i;
+
+    for (i = -3 to 3) {
+        printInt(24 / i);
+        printString("\n");
+    }
+
+    return 0;
+}

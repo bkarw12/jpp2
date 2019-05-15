@@ -279,7 +279,7 @@ interpretExpr (EApp (Ident var) es) = do
 interpretExpr (EString s) = return $ VStr s
 interpretExpr (Neg e) = do
     n <- exprInt e
-    return $ VInt n
+    return $ VInt $ -n
 interpretExpr (Not e) = do
     b <- exprBool e
     return $ VBool $ not b
