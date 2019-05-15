@@ -221,6 +221,11 @@ interpretLoopStmt :: Stmt -> Stt (RetVal, LoopVal)
 interpretLoopStmt Break = return (NoRet,LBreak)
 interpretLoopStmt Cont = return (NoRet,LCont)
 interpretLoopStmt (BStmt (Block stmts)) = interpretLoopBlock stmts
+interpretLoopStmt (Cond e stmt1) = interpretLoopStmt (CondElse e stmt1 Empty)
+interpretLoopStmt (CondElse e stmt1 stmt2) = do
+    (VBool b) <- interpretExpr e
+    if b then interpretLoopStmt stmt1
+    else interpretLoopStmt stmt2
 interpretLoopStmt stmt = do
     retval <- interpretStmt stmt
     return (retval, LNone)

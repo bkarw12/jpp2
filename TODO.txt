@@ -3,7 +3,6 @@ Błędy kompilacji:
 
 Wykonanie programu:
 - dodać pętlę for iterującą malejąco?
-- break/continue w ifach
 
 Refactor:
 -

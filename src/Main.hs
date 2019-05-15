@@ -27,8 +27,6 @@ import ErrM
 
 type ParseFun a = [Token] -> Err a
 
-type Verbosity = Int
-
 --
 -- Program running functions
 --
@@ -42,8 +40,7 @@ run p s = do
 
 run' :: ParseFun Program -> String -> ErrIO ()
 run' p s = do
-    let ts = myLexer s
-    prog <- ErrT $ return $ p ts
+    prog <- ErrT $ return $ p $ myLexer s
     runCompileCheck prog
     n <-runInterpreter prog
     liftErrT $ putStrLn $ "\n\nint main() returned value: " ++ show n

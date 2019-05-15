@@ -3,6 +3,12 @@
 int main() {
     // int x = a(x);
     // x++;
+    for (a = 1 to 5) {
+        if (a >= 3) {
+            if (a == 4) break;
+        }
+        printInt(a);
+    }
     printInt(5);
     printString("\nHello world!");
     return 0;
