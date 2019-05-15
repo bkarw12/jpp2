@@ -1,0 +1,15 @@
+// redeklaracja w różnych blokach
+
+int a;
+
+int main () {
+    int a = 1;
+    {
+        int a = 5;
+        printInt(a);
+        printString("\n"); 
+    }
+    printInt(a);
+
+    return 0;
+}
