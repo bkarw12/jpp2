@@ -408,8 +408,14 @@ checkReturnBlock :: Block -> Err ()
 checkReturnBlock (Block stmts) = mapM_ checkReturnStmt stmts
 
 checkReturnStmt :: Stmt -> Err ()
+checkReturnStmt (BStmt b) = checkReturnBlock b
 checkReturnStmt (Ret _) = Bad "Ok"
 checkReturnStmt (VRet)  = Bad "Ok"
+checkReturnStmt (CondElse _ stmt1 stmt2) = do
+    let ret1 = checkReturnStmt stmt1
+        ret2 = checkReturnStmt stmt2
+    if ret1 == Bad "Ok" && ret2 == Bad "Ok" then Bad "Ok"
+    else return ()
 checkReturnStmt _       = return ()
 
 --

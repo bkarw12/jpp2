@@ -1,5 +1,4 @@
 Błędy kompilacji:
--
 
 Wykonanie programu:
 - dodać pętlę for iterującą malejąco?
