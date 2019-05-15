@@ -141,8 +141,9 @@ checkInsertVar t (Init (Ident var) e) = do
 
 checkInsertVar' :: Type -> Val -> Var -> Stt ()
 checkInsertVar' t val var = do
-    checkReadOnly var $ ceVarRedeclRead var
     env <- get
+    if member var $ lEnv env then checkReadOnly var $ ceVarRedeclRead var
+    else return ()
     let n = depth env
     case Data.Map.lookup var $ lEnv env of
         Nothing  -> return ()
@@ -328,9 +329,9 @@ checkTopDef'' :: TopDef -> Stt ()
 checkTopDef'' (FnDef t (Ident var) args b) = do
     env <- get
     let fs = fEnv env
-    if notMember var fs then 
+    if notMember var fs then do
         let fs' = insert var (t,args,b) fs 
-        in put env {fEnv = fs'}
+        put env {fEnv = fs'}
     else liftCompiletimeError $ ceFunRedecl var
 checkTopDef'' (VDef (Decl t items)) = mapM_ (checkTopDefV t) items
 

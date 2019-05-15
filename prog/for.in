@@ -1,11 +1,16 @@
-// pętla for
+// pętla for - wyliczanie wartości końcowej
 
 int main() {
     int i;
+    int x = 5;
 
-    for (i = 0 to 4) {
+    for (i = 0 to x) {
         printInt(i);
+        x++;
     }
+
+    printString("\n");
+    printInt(x);
 
     return 0;
 }
