@@ -23,10 +23,10 @@ na podstawie języka \textit{Latte} ze strony:\\
 Opis gramatyki w notacji EBNF znajduje się w~pliku \textbf{gram.cf}
 
 \section{Przykładowe programy}
-Przykładowe programy znajdują się w~folderze \textbf{prog}.
+Przykładowe programy znajdują się w~folderze \textbf{prog} w~podfolderach 
+\textbf{good} (poprawne programy) oraz \textbf{bad} (niepoprawne programy).
 \begin{itemize}
     \item latte1/2/3.in - przykładowe programy z \textit{Latte}.
-    \item *\_bad.in - przykładowe niepoprawne programy
     \item *.out - output przykładowych programów
 \end{itemize}
 
@@ -60,7 +60,8 @@ zachowują się w~tym języku identycznie.
 \subsection{Napisy}
 Napisy, jak w \textit{Latte}, mogą występować tu jako:
 literały, wartości zmiennych, argumentów i~wyników funkcji.
-Różnica jest taka, że tutaj napisy jako parametry funkcji przekazywane są przez wartość. Nie można także konkatenować napisów operatorem +.
+Różnica jest taka, że tutaj napisy jako parametry funkcji przekazywane są przez wartość.
+Nie można także konkatenować napisów operatorem +.
 
 \subsection{Predefiniowane funkcje}
 W~języku występują następujące predefiniowane funkcje, 
@@ -73,7 +74,9 @@ których działanie identyczne jak w~\textit{Latte}:
 
 \subsection{Inne instrukcje}
 \begin{itemize}
-    \item Pętla for (for i = a to b) - tak jak w~wymaganiu punktowym nr 7, zmienna i~jest \textit{read-only}, zaś wartość b jest wyliczana tylko raz na początku pętli.
+    \item Pętla for (for i = a to b) - tak jak w~wymaganiu punktowym nr 7,
+    zmienna i~jest \textit{read-only}, 
+    zaś wartość b jest wyliczana tylko raz na początku pętli.
     \item break/continue - analogicznie jak np. w~C++.
 \end{itemize}
 
