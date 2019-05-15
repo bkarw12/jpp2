@@ -43,7 +43,7 @@ data Env = Env {
     output :: [String]  -- list of things to stdout     [string]
 }
 
-type Stt a = Stt' Env a
+type Stt a = StateT Env (ErrT IO) a
 
 --
 -- Predefined functions
@@ -58,10 +58,12 @@ predefinedFunctions = [
 -- Auxillary functions
 --
 
+liftErrorT = lift . ErrT . return . Bad
+
 liftRuntimeError :: String -> Stt a
 liftRuntimeError s = do
     env <- get
-    lift $ Bad $ (concat . reverse $ output env) ++ "\n\nError: " ++ s
+    liftErrorT $ (concat . reverse $ output env) ++ "\n\nError: " ++ s
 
 retvalToVal :: RetVal -> Val
 retvalToVal NoRet = VNone
@@ -82,7 +84,7 @@ getVVal :: Loc -> Stt VVal
 getVVal loc = do
     env <- get
     case Data.Map.lookup loc $ vEnv env of
-        Nothing   -> lift $ Bad $ "Unknown error: wrong location?"
+        Nothing   -> liftErrorT $ "Unknown error: wrong location?"
         Just vval -> return vval
 
 getVVal' :: Var -> Stt VVal
@@ -99,7 +101,7 @@ getFun :: Var -> Stt FVal
 getFun var = do
     env <- get
     case Data.Map.lookup var $ fEnv env of
-        Nothing   -> lift $ Bad $ "Unknown error: bad function name?"
+        Nothing   -> liftErrorT $ "Unknown error: bad function name?"
         Just fval -> return fval
 
 declVar :: Type -> Item -> Stt ()
@@ -174,7 +176,7 @@ runPredef "printString" [VStr s] = do
     addOutput s
     return VNone
 runPredef "error" [] = liftRuntimeError reError
-runPredef _ _ = lift $ Bad "Unknown error: wrong predefined function?"
+runPredef _ _ = liftErrorT $ "Unknown error: wrong predefined function?"
 
 addOutput :: String -> Stt ()
 addOutput s = do
@@ -318,11 +320,11 @@ interpretExpr (EOr e1 e2) = do
 --
 -- Environment preparation
 --
-
-prepareEnv :: Program -> Err Env
-prepareEnv p = case runStateT (prepareEnv' p) $ Env empty empty empty [] of
-    Ok (_,s) -> Ok s
-    Bad e    -> Bad e
+    
+prepareEnv :: Program -> ErrIO Env
+prepareEnv p = do
+    (_,env) <- runStateT (prepareEnv' p) $ Env empty empty empty []
+    return env
 
 prepareEnv' :: Program -> Stt ()
 prepareEnv' (Program topdefs) = mapM_ prepareTopDef topdefs
@@ -338,12 +340,15 @@ prepareTopDef (VDef decl) = declVars decl
 -- Main interpreter functions
 --
 
-runInterpreter :: Program -> Err (Integer, Env)
-runInterpreter prog = do
-    env <- prepareEnv prog
-    runInterpreter' env
+runInterpreter :: Program -> ErrIO ()
+runInterpreter prog = return ()
 
-runInterpreter' :: Env -> Err (Integer, Env)
-runInterpreter' env = case runStateT (interpretEnv) env of
-    Bad e    -> Bad e
-    ok       -> ok
+-- runInterpreter :: Program -> Err (Integer, Env)
+-- runInterpreter prog = do
+--     env <- prepareEnv prog
+--     runInterpreter' env
+
+-- runInterpreter' :: Env -> Err (Integer, Env)
+-- runInterpreter' env = case runStateT (interpretEnv) env of
+--     Bad e    -> Bad e
+--     ok       -> ok

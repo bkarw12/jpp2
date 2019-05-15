@@ -76,6 +76,9 @@ instance Monad m => MonadPlus (ErrT m) where
 instance MonadTrans ErrT where
   lift = ErrT . (liftM Ok)
 
+instance Monad m => MonadFail (ErrT m) where
+  fail s = ErrT $ return $ Bad s
+
 -- for some reason lift :: IO a -> ErrT IO a is not in scope 
 liftErrT :: Monad m => m a -> ErrT m a
 liftErrT = lift

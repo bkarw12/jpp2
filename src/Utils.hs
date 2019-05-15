@@ -27,7 +27,7 @@ type LEnv' = Map Var Loc
 type VEnv' vval = Map Loc vval
 type FEnv' fval = Map Var fval
 
-type Stt' env a = StateT env Err a
+type ErrIO a = (ErrT IO) a
 
 --
 -- Functions

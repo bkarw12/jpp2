@@ -43,7 +43,7 @@ data Env = Env {
     ret :: Type         -- expected return type,    type,           used to check if the return expr type matches
 }
 
-type Stt a = Stt' Env a
+type Stt a = StateT Env Err a
 
 --
 -- Predefined functions
@@ -60,7 +60,7 @@ predefinedFunctions = fromList [
 --
 
 liftCompiletimeError :: String -> Stt a
-liftCompiletimeError s = lift $ Bad $ "Error: " ++ s
+liftCompiletimeError s = lift $ Bad s
 
 typeToVal :: Type -> Val
 typeToVal Int = VInt
@@ -409,7 +409,7 @@ checkReturnStmt (VRet)  = Bad "Ok"
 checkReturnStmt _       = return ()
 
 --
--- Main error check function
+-- Main error check functions
 --
 
 checkProgram :: Program -> Err ()
@@ -419,3 +419,6 @@ checkProgram prog = do
     checkReturn env
     checkMain env
     return ()
+
+runCompileCheck :: Program -> ErrIO ()
+runCompileCheck prog = ErrT $ return $ checkProgram prog
