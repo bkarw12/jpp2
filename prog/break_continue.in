@@ -2,16 +2,14 @@
 
 int x;
 
-int main() {
-    int x = 1;
-    
-    while (x < 6) {
-        if (x == 3)
+int main() {    
+    for (x = 1 to 6) {
+        if (x == 2)
             continue;
         if (x == 5)
             break;
         printInt(x);
-        x++;
     }
+
     return 0;
 }
