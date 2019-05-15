@@ -12,7 +12,6 @@ module Main where
 
 import Data.Map
 import System.IO ( getContents )
-import System.Environment ( getArgs )
 import System.Exit ( exitFailure, exitSuccess )
 
 import LexGram
@@ -35,8 +34,11 @@ run :: ParseFun Program -> String -> IO ()
 run p s = do
     ret <- runErrT $ run' p s
     case ret of
-        Bad s -> putStrLn $ "Error: " ++ s
-        _     -> return ()
+        Bad s -> do
+            putStrLn $ "Error: " ++ s
+            exitFailure
+        _     -> do
+            exitSuccess
 
 run' :: ParseFun Program -> String -> ErrIO ()
 run' p s = do
