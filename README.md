@@ -8,7 +8,7 @@
     1. (Jeśli wystąpi błąd kompilacji) Dodać `import Data.Char (ord)` do `LexGram.hs`
 
 ##### Kompilacja i uruchomienie interpretera #####
-1. patrz - _Generowanie plików gramatyki i kompilacja parsera/leksera_
+1. `cd src`
 1. `ghc -O --make Main`
     1. (Można zamiast tego, aby usunąć pliki powstałe przy kompilacji) `sh make.sh`
-1. `./Main(.exe) <FILENAME>`
+1. `./Main(.exe)`

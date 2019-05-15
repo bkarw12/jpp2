@@ -186,10 +186,13 @@ tcVars env = mapM_ (tcVars' $ lEnv env) $ toList $ vEnv env
 
 tcVars' :: LEnv -> (Loc, VVal) -> Err ()
 tcVars' ls (loc,vval) = case vval of
-    (Int, VInt,_,_)   -> Ok ()
-    (Bool, VBool,_,_) -> Ok ()
-    (Str, VStr,_,_)   -> Ok ()
-    _               -> Bad $ ceVarGlobalType $ keyFromValue ls loc
+    (Void,_,_,_)     -> Bad $ ceVarVoid
+    (Fun _ _,_,_,_)  -> Bad $ ceVarFun
+    (_,VNone,_,_)    -> Ok ()
+    (Int,VInt,_,_)   -> Ok ()
+    (Bool,VBool,_,_) -> Ok ()
+    (Str,VStr,_,_)   -> Ok ()
+    _                -> Bad $ ceVarGlobalType $ keyFromValue ls loc
 
 tcFuncs :: Env -> Err ()
 tcFuncs env = mapM_ (tcFuncs' env) $ toList $ fEnv env

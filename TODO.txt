@@ -3,6 +3,7 @@ Błędy kompilacji:
 
 Wykonanie programu:
 - dodać pętlę for iterującą malejąco?
+- bug z pętlą while?
 
 Refactor:
 -
