@@ -1,0 +1,8 @@
+// przypisanie jednej zmiennej globalnej na drugą
+
+int a = 3;
+int b = 2 * a;
+
+int main() {
+    return 0;
+}

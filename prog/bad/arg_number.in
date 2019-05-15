@@ -1,0 +1,12 @@
+// zła liczba argumentów w wywołaniu funkcji
+
+void wrong(int a, string b, boolean c) {
+    return;
+}
+
+int main() {
+    int x = 2;
+    wrong(3,"test",true,x);
+
+    return 0;
+}

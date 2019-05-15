@@ -1,0 +1,6 @@
+// nieznany identyfikator funkcji
+
+int main() {
+    test(2);
+    return 0;
+}

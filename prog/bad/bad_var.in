@@ -1,0 +1,6 @@
+// nieznany identyfikator zmiennej
+
+int main() {
+    printInt(x);
+    return 0;
+}
