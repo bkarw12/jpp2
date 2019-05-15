@@ -58,12 +58,8 @@ predefinedFunctions = [
 -- Auxillary functions
 --
 
-liftErrorT = lift . ErrT . return . Bad
-
 liftRuntimeError :: String -> Stt a
-liftRuntimeError s = do
-    env <- get
-    liftErrorT $ (concat . reverse $ output env) ++ "\n\nError: " ++ s
+liftRuntimeError = lift . ErrT . return . Bad
 
 retvalToVal :: RetVal -> Val
 retvalToVal NoRet = VNone
@@ -84,7 +80,7 @@ getVVal :: Loc -> Stt VVal
 getVVal loc = do
     env <- get
     case Data.Map.lookup loc $ vEnv env of
-        Nothing   -> liftErrorT $ "Unknown error: wrong location?"
+        Nothing   -> liftRuntimeError "Unknown error: wrong location?"
         Just vval -> return vval
 
 getVVal' :: Var -> Stt VVal
@@ -101,7 +97,7 @@ getFun :: Var -> Stt FVal
 getFun var = do
     env <- get
     case Data.Map.lookup var $ fEnv env of
-        Nothing   -> liftErrorT $ "Unknown error: bad function name?"
+        Nothing   -> liftRuntimeError "Unknown error: bad function name?"
         Just fval -> return fval
 
 declVar :: Type -> Item -> Stt ()
@@ -170,20 +166,16 @@ runFunction var vals = do
 
 runPredef :: Var -> [Val] -> Stt Val
 runPredef "printInt" [VInt n] = do
-    addOutput $ show n
+    printOutput $ show n
     return VNone
 runPredef "printString" [VStr s] = do
-    addOutput s
+    printOutput s
     return VNone
 runPredef "error" [] = liftRuntimeError reError
-runPredef _ _ = liftErrorT $ "Unknown error: wrong predefined function?"
+runPredef _ _ = liftRuntimeError "Unknown error: wrong predefined function?"
 
-addOutput :: String -> Stt ()
-addOutput s = do
-    env <- get
-    let out' = s:(output env)
-    put env {output = out'}
-
+printOutput :: String -> Stt ()
+printOutput s = (lift . liftErrT) $ putStr s
 --
 -- Interpreter state functions (main operations on lexemes)
 --
@@ -340,15 +332,8 @@ prepareTopDef (VDef decl) = declVars decl
 -- Main interpreter functions
 --
 
-runInterpreter :: Program -> ErrIO ()
-runInterpreter prog = return ()
-
--- runInterpreter :: Program -> Err (Integer, Env)
--- runInterpreter prog = do
---     env <- prepareEnv prog
---     runInterpreter' env
-
--- runInterpreter' :: Env -> Err (Integer, Env)
--- runInterpreter' env = case runStateT (interpretEnv) env of
---     Bad e    -> Bad e
---     ok       -> ok
+runInterpreter :: Program -> ErrIO Integer
+runInterpreter prog = do
+    env <- prepareEnv prog
+    (n,_) <- runStateT interpretEnv env
+    return n

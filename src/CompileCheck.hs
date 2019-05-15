@@ -60,7 +60,7 @@ predefinedFunctions = fromList [
 --
 
 liftCompiletimeError :: String -> Stt a
-liftCompiletimeError s = lift $ Bad s
+liftCompiletimeError = lift . Bad
 
 typeToVal :: Type -> Val
 typeToVal Int = VInt
@@ -83,7 +83,7 @@ getVVal :: Loc -> Stt VVal
 getVVal loc = do
     env <- get
     case Data.Map.lookup loc $ vEnv env of
-        Nothing   -> lift $ Bad $ "Unknown error: wrong location?"
+        Nothing   -> liftCompiletimeError "Unknown error: wrong location?"
         Just vval -> return vval
 
 getVVal' :: Var -> Stt VVal
