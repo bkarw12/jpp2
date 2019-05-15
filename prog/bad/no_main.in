@@ -1,0 +1,5 @@
+// brak funkcji main
+
+int test() {
+    return 0;
+}

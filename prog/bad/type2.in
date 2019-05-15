@@ -1,0 +1,8 @@
+// statyczne typowanie - zły typ wyrażenia podczas obliczania operacji
+
+int main () {
+    int a = 1 + "test";
+
+    printInt(0);
+    return 0;
+}

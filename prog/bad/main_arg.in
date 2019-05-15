@@ -1,0 +1,5 @@
+// main nie przyjmuje parametrów
+
+int main(int n) {
+    return 0;
+}

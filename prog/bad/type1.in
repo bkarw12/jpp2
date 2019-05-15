@@ -1,0 +1,13 @@
+// statyczne typowanie - przypisanie złego typu
+
+string test(int n) {
+    return "test";
+}
+
+int main () {
+    int a = 1;
+
+    a = test(1);
+
+    return 0;
+}

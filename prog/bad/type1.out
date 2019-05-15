@@ -1,0 +1,1 @@
+Error: types mismatch in variable assignment: a = test(1);

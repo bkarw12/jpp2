@@ -1,0 +1,7 @@
+// zła nazwa typu (powinien być boolean, nie bool)
+
+int main() {
+    int a;
+    bool b;
+    string c;
+}

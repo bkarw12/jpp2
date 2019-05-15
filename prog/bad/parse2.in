@@ -1,0 +1,11 @@
+// brak średnika
+
+string test(int n) {
+    return "test";
+}
+
+int main () {
+    int a = 1;
+
+    printInt(2)
+}

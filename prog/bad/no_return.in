@@ -1,0 +1,9 @@
+// brak zwrócenia wartości z funkcji
+
+int test(int n) {
+    n = 2;
+}
+
+int main() {
+    return test(3);
+}

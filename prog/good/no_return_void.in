@@ -1,0 +1,11 @@
+// void nie potrzebuje instrukcji return
+
+void a() {
+    ;
+}
+
+int main() {
+    a();
+    printInt(1);
+    return 0;
+}

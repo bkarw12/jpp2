@@ -1,0 +1,7 @@
+// wyrażenie/instrukcja poza funkcją
+
+x;
+
+int main() {
+    return 0;
+}

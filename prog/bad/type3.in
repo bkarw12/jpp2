@@ -1,0 +1,13 @@
+// statyczne typowanie - zły typ parametru funkcji
+
+int id(int n) {
+    return n;
+}
+
+int main () {
+    int a = 1;
+
+    a = id(true);
+
+    return 0;
+}
