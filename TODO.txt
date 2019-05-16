@@ -8,7 +8,7 @@ Refactor:
 -
 
 Deklaracja:
-- code snippety tam gdzie występują kawałki kodu?
 
 Inne:
 - dodać skrypt zip.sh pakujący paczkę z rozwiązaniem
+- więcej komentarzy?
