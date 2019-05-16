@@ -1,9 +1,0 @@
-int main() {
-    string a = "";
-    a++;
-    return 0;
-}
-
-void x() {
-    
-}
