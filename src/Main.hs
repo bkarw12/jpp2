@@ -11,7 +11,7 @@ module Main where
 --
 
 import Data.Map
-import System.IO ( getContents )
+import System.IO ( getContents, hPutStrLn, stderr )
 import System.Environment ( getArgs, getProgName )
 import System.Exit ( exitFailure, exitSuccess )
 
@@ -49,7 +49,8 @@ run p s = do
     ret <- runErrT $ run' p s
     case ret of
         Bad s -> do
-            putStrLn $ "\n\nError: " ++ s
+            -- putStrLn $ "\n\nError: " ++ s
+            hPutStrLn stderr $ "Error: " ++ s
             exitFailure
         _     -> do
             exitSuccess
@@ -58,8 +59,9 @@ run' :: ParseFun Program -> String -> ErrIO ()
 run' p s = do
     prog <- ErrT $ return $ p $ myLexer s
     runCompileCheck prog
-    n <-runInterpreter prog
-    liftErrT $ putStrLn $ "\n\nint main() returned value: " ++ show n
+    runInterpreter prog
+    -- liftErrT $ putStrLn $ "\n\nint main() returned value: " ++ show n
+    return ()
 --
 -- Main
 --
@@ -69,4 +71,5 @@ main = do
     args <- getArgs
     case args of
         [f] -> runFile pProgram f
+        []  -> getContents >>= run pProgram
         _   -> usage
