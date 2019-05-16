@@ -39,8 +39,7 @@ type FEnv = FEnv' FVal
 data Env = Env {
     lEnv :: LEnv,       -- location env,                var -> loc
     vEnv :: VEnv,       -- variables state env,         loc -> value
-    fEnv :: FEnv,       -- functions env,               var -> fvalue
-    output :: [String]  -- list of things to stdout     [string]
+    fEnv :: FEnv        -- functions env,               var -> fvalue
 }
 
 type Stt a = StateT Env (ErrT IO) a
@@ -320,7 +319,7 @@ interpretExpr (EOr e1 e2) = do
     
 prepareEnv :: Program -> ErrIO Env
 prepareEnv p = do
-    (_,env) <- runStateT (prepareEnv' p) $ Env empty empty empty []
+    (_,env) <- runStateT (prepareEnv' p) $ Env empty empty empty
     return env
 
 prepareEnv' :: Program -> Stt ()
