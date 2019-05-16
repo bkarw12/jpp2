@@ -1,0 +1,13 @@
+// pętla while
+
+int main() {
+    int i = 0;
+
+    while(i < 10) {
+        printString("The number is: ");
+        printIntLn(i);
+        i++;
+    }
+
+    return 0;
+}

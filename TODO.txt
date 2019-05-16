@@ -12,5 +12,3 @@ Deklaracja:
 
 Inne:
 - dodać skrypt zip.sh pakujący paczkę z rozwiązaniem
-- przetestować pętlę while
-- dokończyć przykładowe prawidłowe programy (wszystkie punktowane konstrukcje języka)

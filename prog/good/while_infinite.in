@@ -1,0 +1,9 @@
+// pętla while
+
+int main() {
+    while (true) {
+        printIntLn(5);
+    }
+
+    return 0;
+}

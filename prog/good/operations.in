@@ -1,0 +1,37 @@
+// arytmetyka
+
+void printBoolean(boolean b) {
+    if (b)
+        printStringLn("true");
+    else
+        printStringLn("false");
+}
+
+int main() {
+    int a = 3, b = 4;
+    boolean c = true, d = false;
+
+    printIntLn(a + b);
+    printIntLn(a - b);
+    printIntLn(a * b);
+    printIntLn(a / b);
+    printIntLn(-a);
+    printStringLn("");
+    
+    printIntLn(a % 2);
+    printIntLn(b % 2);
+    printStringLn("");
+
+    printBoolean(a == b);
+    printBoolean(5 == 5);
+    printBoolean(a <= b);
+    printBoolean(a < b);
+    printBoolean(a > b);
+    printBoolean(a != b);
+    printStringLn("");
+
+    printBoolean(true || false);
+    printBoolean(true && false);
+
+    return 0;
+}
