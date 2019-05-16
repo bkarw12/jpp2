@@ -50,7 +50,9 @@ type Stt a = StateT Env (ErrT IO) a
 predefinedFunctions :: [Var]
 predefinedFunctions = [
     "printInt",
+    "printIntLn",
     "printString",
+    "printStringLn",
     "error"]
 
 --
@@ -167,8 +169,14 @@ runPredef :: Var -> [Val] -> Stt Val
 runPredef "printInt" [VInt n] = do
     printOutput $ show n
     return VNone
+runPredef "printIntLn" [VInt n] = do
+    printOutput $ show n ++ "\n"
+    return VNone
 runPredef "printString" [VStr s] = do
     printOutput s
+    return VNone
+runPredef "printStringLn" [VStr s] = do
+    printOutput $ s ++ "\n"
     return VNone
 runPredef "error" [] = liftRuntimeError reError
 runPredef _ _ = liftRuntimeError "Unknown error: wrong predefined function?"

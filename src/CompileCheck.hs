@@ -52,7 +52,9 @@ type Stt a = StateT Env Err a
 predefinedFunctions :: FEnv
 predefinedFunctions = fromList [
     ("printInt",(Void,[Arg Int (Ident "")],Block [])),
+    ("printIntLn",(Void,[Arg Int (Ident "")],Block [])),
     ("printString",(Void,[Arg Str (Ident "")],Block [])),
+    ("printStringLn",(Void,[Arg Str (Ident "")],Block [])),
     ("error",(Void,[],Block []))]
 
 --
