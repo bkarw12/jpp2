@@ -12,6 +12,7 @@ module Main where
 
 import Data.Map
 import System.IO ( getContents )
+import System.Environment ( getArgs, getProgName )
 import System.Exit ( exitFailure, exitSuccess )
 
 import LexGram
@@ -27,8 +28,21 @@ import ErrM
 type ParseFun a = [Token] -> Err a
 
 --
+-- Usage function
+--
+
+usage :: IO ()
+usage = do
+    progName <- getProgName
+    putStrLn $ "Usage ./" ++ progName ++ " <FILENAME>"
+    exitFailure
+
+--
 -- Program running functions
 --
+
+runFile :: ParseFun Program -> FilePath -> IO ()
+runFile p f = readFile f >>= run p
 
 run :: ParseFun Program -> String -> IO ()
 run p s = do
@@ -51,4 +65,9 @@ run' p s = do
 --
 
 main :: IO ()
-main = getContents >>= run pProgram
+main = do
+    args <- getArgs
+    case args of
+        [f] -> runFile pProgram f
+        _   -> usage
+    -- getContents >>= run pProgram
