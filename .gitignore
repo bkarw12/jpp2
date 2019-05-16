@@ -1,5 +1,8 @@
 *.pdf
 *.exe
+*.dll
+*.o
+*.hi
 grammar/*
 !grammar/gram.cf
 !other/decl.pdf
