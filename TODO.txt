@@ -10,5 +10,4 @@ Refactor:
 Deklaracja:
 
 Inne:
-- dodać skrypt zip.sh pakujący paczkę z rozwiązaniem
 - więcej komentarzy?

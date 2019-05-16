@@ -70,4 +70,3 @@ main = do
     case args of
         [f] -> runFile pProgram f
         _   -> usage
-    -- getContents >>= run pProgram
