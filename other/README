@@ -1,17 +1,15 @@
 Rozwiązanie składa się z następujących plików i folderów:
 
 - prog/     - przykładowe programy (poprawne i niepoprawne)
-- src/      - pliki źródłowe (.hs) oraz Makefile
-- decl.pdf  - aktualna deklaracja języka w formacie .pdf
-- gram.cf   - opis gramatyki języka w notacji EBNF
+- lang/    - aktualna deklaracja języka w formacie .pdf oraz opis gramatyki w notacji EBNF
+- *.hs      - pliki źródłowe (.hs) oraz Makefile
 
 Deklaracja języka uległa aktualizacji - zawiera teraz bardziej szczegółowe informacje na temat opisu języka.
 
 Kompilacja i uruchomienie interpretera:
-1. cd src
-2. make
-3. (opcjonalnie) make clean
-4. ./interpreter program
+1. make
+2. (opcjonalnie) make clean
+3. ./interpreter program
 
 Zawartość plików źródłowych:
 - AbsGram.hs, LexGram.hs, ParGram.hs, PrintGram.hs - pliki wygenerowane przez BNFC

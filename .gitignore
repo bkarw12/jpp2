@@ -1,4 +1,5 @@
 *.pdf
+*.zip
 *.exe
 *.dll
 *.o
@@ -6,4 +7,4 @@
 grammar/*
 !grammar/gram.cf
 !other/decl.pdf
-bk385713
+bartlomiej_karwowski
