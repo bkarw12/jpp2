@@ -8,7 +8,7 @@ int main() {
             continue;
         if (x == 5)
             break;
-        printInt(x);
+        printIntLn(x);
     }
 
     return 0;

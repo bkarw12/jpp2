@@ -4,8 +4,7 @@ int main() {
     int i;
 
     for (i = -3 to 3) {
-        printInt(24 / i);
-        printString("\n");
+        printIntLn(24 / i);
     }
 
     return 0;

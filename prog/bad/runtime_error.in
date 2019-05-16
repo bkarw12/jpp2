@@ -1,7 +1,7 @@
 // runtime error z wykorzystaniem funkcji error
 
 int main() {
-    printString("test\n");
+    printStringLn("test");
     error();
 
     return 0;

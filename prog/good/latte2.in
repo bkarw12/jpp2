@@ -1,12 +1,12 @@
 // wypisz liczby parzyste do 10 (Latte)
 
 int main () {
-  int i ;
-  i = 0 ;
-  while (i < 10){
-    if (i % 2 == 0) printInt(i) ; 
-    i++ ;
+  int i;
+  i = 0;
+  while (i < 10) {
+    if (i % 2 == 0) printIntLn(i); 
+    i++;
   }
-  printInt(i) ;
-  return 0 ;
+  printIntLn(i);
+  return 0;
 }

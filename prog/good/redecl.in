@@ -6,8 +6,7 @@ int main () {
     int a = 1;
     {
         int a = 5;
-        printInt(a);
-        printString("\n"); 
+        printIntLn(a);
     }
     printInt(a);
 

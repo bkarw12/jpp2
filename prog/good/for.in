@@ -5,11 +5,11 @@ int main() {
     int x = 5;
 
     for (i = 0 to x) {
-        printInt(i);
+        printIntLn(i);
         x++;
     }
 
-    printString("\n");
+    printStringLn("");
     printInt(x);
 
     return 0;
