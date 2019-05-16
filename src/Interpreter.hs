@@ -203,40 +203,6 @@ interpretBlock' (stmt:stmts) = do
         NoRet -> interpretBlock' stmts
         _     -> return retval
 
-interpretLoop :: Expr -> Stmt -> Stmt -> Stt RetVal
-interpretLoop e stmt endStmt = do
-    (VBool b) <- interpretExpr e
-    if b then do
-        vals <- interpretLoopStmt stmt
-        case vals of
-            (IRet ret,_) -> return $ IRet ret
-            (_,LBreak)   -> return NoRet
-            _            -> do
-                interpretStmt endStmt
-                interpretLoop e stmt endStmt
-    else return NoRet
-
-interpretLoopBlock :: [Stmt] -> Stt (RetVal, LoopVal)
-interpretLoopBlock [] = return (NoRet,LNone)
-interpretLoopBlock (stmt:stmts) = do
-    vals <- interpretLoopStmt stmt
-    case vals of
-        (NoRet,LNone) -> interpretLoopBlock stmts
-        _             -> return vals
-
-interpretLoopStmt :: Stmt -> Stt (RetVal, LoopVal)
-interpretLoopStmt Break = return (NoRet,LBreak)
-interpretLoopStmt Cont = return (NoRet,LCont)
-interpretLoopStmt (BStmt (Block stmts)) = interpretLoopBlock stmts
-interpretLoopStmt (Cond e stmt1) = interpretLoopStmt (CondElse e stmt1 Empty)
-interpretLoopStmt (CondElse e stmt1 stmt2) = do
-    (VBool b) <- interpretExpr e
-    if b then interpretLoopStmt stmt1
-    else interpretLoopStmt stmt2
-interpretLoopStmt stmt = do
-    retval <- interpretStmt stmt
-    return (retval, LNone)
-
 interpretStmt :: Stmt -> Stt RetVal
 interpretStmt (BStmt b) = interpretBlock b
 interpretStmt (DeclStmt decl) = do
@@ -272,6 +238,41 @@ interpretStmt (SExp e) = do
     interpretExpr e
     return NoRet
 interpretStmt _ = return NoRet -- break/continue is interpreted in interpretLoop functions
+
+interpretLoop :: Expr -> Stmt -> Stmt -> Stt RetVal
+interpretLoop e stmt endStmt = do
+    (VBool b) <- interpretExpr e
+    if b then do
+        vals <- interpretLoopStmt stmt
+        case vals of
+            (IRet ret,_) -> return $ IRet ret
+            (_,LBreak)   -> return NoRet
+            _            -> do
+                interpretStmt endStmt
+                interpretLoop e stmt endStmt
+    else return NoRet
+
+-- here we interpret stmts just like in interpretStmt, but we check for break/continue
+interpretLoopStmt :: Stmt -> Stt (RetVal, LoopVal)
+interpretLoopStmt Break = return (NoRet,LBreak)
+interpretLoopStmt Cont = return (NoRet,LCont)
+interpretLoopStmt (BStmt (Block stmts)) = interpretLoopBlock stmts
+interpretLoopStmt (Cond e stmt1) = interpretLoopStmt (CondElse e stmt1 Empty)
+interpretLoopStmt (CondElse e stmt1 stmt2) = do
+    (VBool b) <- interpretExpr e
+    if b then interpretLoopStmt stmt1
+    else interpretLoopStmt stmt2
+interpretLoopStmt stmt = do
+    retval <- interpretStmt stmt
+    return (retval, LNone)
+
+interpretLoopBlock :: [Stmt] -> Stt (RetVal, LoopVal)
+interpretLoopBlock [] = return (NoRet,LNone)
+interpretLoopBlock (stmt:stmts) = do
+    vals <- interpretLoopStmt stmt
+    case vals of
+        (NoRet,LNone) -> interpretLoopBlock stmts
+        _             -> return vals
 
 interpretExpr :: Expr -> Stt Val
 interpretExpr (EVar (Ident var)) = do
@@ -322,7 +323,7 @@ interpretExpr (EOr e1 e2) = do
     return $ VBool $ b1 || b2
 
 --
--- Environment preparation
+-- Environment preparation - populating it with global variables and functions
 --
     
 prepareEnv :: Program -> ErrIO Env

@@ -316,7 +316,7 @@ tcExpr2' t e1 e2 s1 s2 = do
     tcExpr' t e2 s2
 
 --
--- Checking global declarations
+-- Checking global declarations (preparing the Environment - populating it with global variables and functions)
 --
 
 checkTopDef :: Program -> Err Env
