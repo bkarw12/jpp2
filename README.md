@@ -1,5 +1,7 @@
 # Simple Programming Language Coded in Haskell (SPLCH)
 
+This project is based on an excercise from the *Programming languages and paradigms* course during my Informatics studies at the University of Warsaw.
+
 ### Functionality and documentation
 The output of these source files is an SPLCH interpreter. SPLCH is an imperative language with very basic features.
 The interpreter's input is a source file with SPLCH code. The interpreter then runs the program and outputs it's code. If the interpreter encounters and error, it is outputted to the standard error stream.
