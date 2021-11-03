@@ -14,7 +14,106 @@ Basic features:
 - `if(...) else` statements, `while(...)` loops, `for(i = a to b)` loops,
 - runtime errors: division by 0, mod 0, `error()` function.
 
-**Example programs** (both correct and not) can be found in the `prog` directory.
+### Example programs
+Example programs (both correct and not) can be found in the `prog` directory.
+
+###### prog/good/latte1.in
+```c
+// Hello world (Latte)
+
+int main () {
+  printString("hello world") ;
+  return 0 ;
+}
+```
+```bash
+$ ./src/interpreter.exe ./prog/good/latte1.in
+hello world
+```
+
+###### prog/good/operations.in
+```c
+// arytmetyka
+
+void printBoolean(boolean b) {
+    if (b)
+        printStringLn("true");
+    else
+        printStringLn("false");
+}
+
+int main() {
+    int a = 3, b = 4;
+    boolean c = true, d = false;
+
+    printIntLn(a + b);
+    printIntLn(a - b);
+    printIntLn(a * b);
+    printIntLn(a / b);
+    printIntLn(-a);
+    printStringLn("");
+    
+    printIntLn(a % 2);
+    printIntLn(b % 2);
+    printStringLn("");
+
+    printBoolean(a == b);
+    printBoolean(5 == 5);
+    printBoolean(a <= b);
+    printBoolean(a < b);
+    printBoolean(a > b);
+    printBoolean(a != b);
+    printStringLn("");
+
+    printBoolean(true || false);
+    printBoolean(true && false);
+
+    return 0;
+}
+```
+```bash
+$ ./src/interpreter.exe ./prog/good/operations.in
+7
+-1
+12
+0
+-3
+
+1
+0
+
+false
+true
+true
+true
+false
+true
+
+true
+false
+```
+
+###### prog/bad/div_zero.in
+```c
+// dzielenie przez zero
+
+int main() {
+    int i;
+
+    for (i = -3 to 3) {
+        printIntLn(24 / i);
+    }
+
+    return 0;
+}
+```
+```bash
+$ ./src/interpreter.exe ./prog/bad/div_zero.in
+Error: division by zero in expression: 24 / i
+-8
+-12
+-24
+```
 
 ### Compiling and running the interpreter
 Note that you need to have [GHC](https://www.haskell.org/ghc/) and [Make](https://www.gnu.org/software/make/) installed.\
